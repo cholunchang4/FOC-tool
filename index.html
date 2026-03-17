@@ -153,8 +153,8 @@ createApp({
             biochemCommon: [], biochemRare: [], immunoCommon: [], immunoRare: [],
             bufferMap: {}, 
             itemMap: {},   
-            rawDetails: [],      // 🌟 新增：存放一模一樣的原始列陣列資料
-            detailHeaders: null  // 🌟 新增：存放一模一樣的原始標題陣列
+            rawDetails: [],      
+            detailHeaders: []    
         });
 
         const selections = ref({
@@ -170,6 +170,7 @@ createApp({
             if (typeof cell.value === 'object') {
                 if (cell.value.richText) val = cell.value.richText.map(rt => rt.text).join('');
                 else if (cell.value.result !== undefined) val = String(cell.value.result);
+                else if (cell.value.error !== undefined) val = String(cell.value.error);
                 else val = String(cell.text || "");
             } else {
                 val = String(cell.value);
@@ -214,6 +215,19 @@ createApp({
             return bufferMap;
         };
 
+        const findBestValue = (rowObj, keyword) => {
+            if (rowObj[keyword]) {
+                const val = String(rowObj[keyword]).trim();
+                if (val && val !== '-' && val.toLowerCase() !== 'nan' && val.toLowerCase() !== 'x') return val;
+            }
+            const keys = Object.keys(rowObj).filter(k => k.replace(/\s+/g, '').includes(keyword));
+            for (let k of keys) {
+                const val = String(rowObj[k]).trim();
+                if (val && val !== '-' && val.toLowerCase() !== 'nan' && val.toLowerCase() !== 'x') return val;
+            }
+            return '';
+        };
+
         const loadDatabaseFromCloud = async () => {
             loading.value = true;
             errorMessage.value = "";
@@ -243,69 +257,60 @@ createApp({
                 const wsBuffer = workbook.getWorksheet('儀器buffer');
                 if(wsBuffer) db.value.bufferMap = parseBufferMap(wsBuffer);
 
-                // 🌟 重構：項目細則「原汁原味」解析引擎
                 const wsDetail = workbook.getWorksheet('項目細則');
                 if(wsDetail) {
-                    // 1. 原封不動儲存第一列表頭陣列 (包含所有空白、未命名欄位)
-                    db.value.detailHeaders = wsDetail.getRow(1).values;
-                    
-                    // 2. 找到「項目名稱」所在的欄位索引 (用來判斷該列屬於什麼項目)
+                    const originalHeaders = [];
+                    const headersDict = {};
                     let nameColIdx = -1;
-                    const headers = [];
-                    const headerCounts = {};
-                    
-                    wsDetail.getRow(1).eachCell((cell, colNumber) => {
-                        let rawText = getCellText(cell);
+
+                    wsDetail.getRow(1).eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                        const rawText = getCellText(cell);
+                        originalHeaders[colNumber] = rawText;
                         if (rawText.replace(/\s+/g, '') === '項目名稱') nameColIdx = colNumber;
-                        
-                        // 建立輔助字典來給第一頁的總表使用 (C, A, O, N, W, V)
-                        let text = rawText || `__empty_${colNumber}`;
-                        if (headerCounts[text]) {
-                            headerCounts[text]++;
-                            headers[colNumber] = `${text}_${headerCounts[text]}`;
+                        let dictKey = rawText || `__empty_${colNumber}`;
+                        if (headersDict[dictKey]) {
+                            let count = 1;
+                            while(headersDict[`${dictKey}_${count}`]) count++;
+                            headersDict[colNumber] = `${dictKey}_${count}`;
                         } else {
-                            headerCounts[text] = 1;
-                            headers[colNumber] = text;
+                            headersDict[dictKey] = true;
+                            headersDict[colNumber] = dictKey;
                         }
                     });
                     
+                    db.value.detailHeaders = originalHeaders;
                     db.value.rawDetails = []; 
                     
                     wsDetail.eachRow((row, rowNumber) => {
                         if(rowNumber === 1) return;
-                        
-                        // 🌟 核心：原汁原味打包整列的陣列資料
-                        const itemName = nameColIdx !== -1 ? getCellText(row.getCell(nameColIdx)).toUpperCase().trim() : "";
-                        db.value.rawDetails.push({
-                            itemName: itemName,
-                            values: row.values // ExcelJS 原始行資料陣列 (保證完全無遺漏)
+                        const plainTextRow = [];
+                        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                            plainTextRow[colNumber] = getCellText(cell);
                         });
+                        const itemName = nameColIdx !== -1 ? (plainTextRow[nameColIdx] || "").toUpperCase().trim() : "";
+                        db.value.rawDetails.push({ itemName: itemName, values: plainTextRow });
                         
-                        // 建立輔助物件給 Sheet 1 使用
                         const rowData = {};
-                        row.eachCell((cell, colNumber) => {
-                            if (headers[colNumber]) rowData[headers[colNumber]] = getCellText(cell);
-                        });
-                        
+                        for (let c = 1; c < plainTextRow.length; c++) {
+                            if (headersDict[c]) rowData[headersDict[c]] = plainTextRow[c] || "";
+                        }
                         const cName = rowData['項目名稱'];
                         if (cName) {
                             const upperName = cName.toUpperCase().trim();
                             db.value.itemMap[upperName] = {
                                 'C': cName,
-                                'A': rowData['產品貨號'] || '',
-                                'O': rowData['校正液名稱'] || rowData['校正液名稱_2'] || '',
-                                'N': rowData['校正液貨號'] || rowData['校正液貨號_2'] || '',
-                                'W': rowData['品管液名稱'] || rowData['品管液名稱_2'] || '',
-                                'V': rowData['品管液貨號'] || rowData['品管液貨號_2'] || ''
+                                'A': findBestValue(rowData, '產品貨號'),
+                                'O': findBestValue(rowData, '校正液名稱'),
+                                'N': findBestValue(rowData, '校正液貨號'),
+                                'W': findBestValue(rowData, '品管液名稱'),
+                                'V': findBestValue(rowData, '品管液貨號')
                             };
                         }
                     });
                 }
-
                 step.value = 1; 
             } catch (e) {
-                console.error(e);
-                errorMessage.value = e.message || "解析失敗，請確認資料格式。";
+                errorMessage.value = e.message || "解析失敗。";
             } finally {
                 loading.value = false;
             }
@@ -315,7 +320,7 @@ createApp({
 
         const currentTitle = computed(() => {
             switch(step.value) {
-                case 1: return "第一步：選擇儀器 (可複選)";
+                case 1: return "第一步：選擇儀器";
                 case 2: return "第二步：選擇常用生化";
                 case 3: return "選擇寡量生化";
                 case 4: return "第三步：選擇常用免疫";
@@ -332,33 +337,13 @@ createApp({
             return { group1: exactG1, group2: exactG2, other: uniqueOther };
         });
 
-        const currentList = computed(() => {
-            switch(step.value) {
-                case 1: 
-                    const allLoaded = [...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse];
-                    return [...new Set([...groupedInsts.value.group1, ...groupedInsts.value.group2, ...allLoaded])];
-                case 2: return db.value.biochemCommon;
-                case 3: return db.value.biochemRare;
-                case 4: return db.value.immunoCommon;
-                case 5: return db.value.immunoRare;
-                default: return [];
-            }
-        });
-
-        const currentSelectionKey = computed(() => {
-            switch(step.value) {
-                case 1: return 'instruments';
-                case 2: return 'biochemCommon';
-                case 3: return 'biochemRare';
-                case 4: return 'immunoCommon';
-                case 5: return 'immunoRare';
-                default: return null;
-            }
-        });
-
         const filteredItems = computed(() => {
-            if(!searchQuery.value) return currentList.value;
-            return currentList.value.filter(item => item.toLowerCase().includes(searchQuery.value.toLowerCase()));
+            const list = step.value === 1 ? [...new Set([...groupedInsts.value.group1, ...groupedInsts.value.group2, ...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse])] : 
+                         step.value === 2 ? db.value.biochemCommon :
+                         step.value === 3 ? db.value.biochemRare :
+                         step.value === 4 ? db.value.immunoCommon : db.value.immunoRare;
+            if(!searchQuery.value) return list;
+            return list.filter(item => item.toLowerCase().includes(searchQuery.value.toLowerCase()));
         });
 
         const themeColor = computed(() => {
@@ -368,69 +353,41 @@ createApp({
             return { text: '', unselected: '', selected: '' };
         });
 
-        const isSelected = (item) => selections.value[currentSelectionKey.value].includes(item);
+        const isSelected = (item) => selections.value[['instruments','biochemCommon','biochemRare','immunoCommon','immunoRare'][step.value-1]].includes(item);
         const toggleSelection = (item) => {
-            const arr = selections.value[currentSelectionKey.value];
+            const arr = selections.value[['instruments','biochemCommon','biochemRare','immunoCommon','immunoRare'][step.value-1]];
             const idx = arr.indexOf(item);
             if (idx > -1) arr.splice(idx, 1); else arr.push(item);
         };
 
         const isAllSelected = computed(() => filteredItems.value.length > 0 && filteredItems.value.every(i => isSelected(i)));
         const toggleSelectAll = () => {
-            if (isAllSelected.value) {
-                filteredItems.value.forEach(item => {
-                    const idx = selections.value[currentSelectionKey.value].indexOf(item);
-                    if(idx > -1) selections.value[currentSelectionKey.value].splice(idx, 1);
-                });
-            } else {
-                filteredItems.value.forEach(item => {
-                    if(!isSelected(item)) selections.value[currentSelectionKey.value].push(item);
-                });
-            }
+            const key = ['instruments','biochemCommon','biochemRare','immunoCommon','immunoRare'][step.value-1];
+            if (isAllSelected.value) filteredItems.value.forEach(item => { const idx = selections.value[key].indexOf(item); if(idx > -1) selections.value[key].splice(idx, 1); });
+            else filteredItems.value.forEach(item => { if(!isSelected(item)) selections.value[key].push(item); });
         };
 
         const goNext = () => {
             if(step.value === 1 && selections.value.instruments.length === 0) return alert("請至少選擇一台儀器！");
             history.value.push(step.value);
             searchQuery.value = ""; 
-
-            if(step.value === 1) {
-                if(hasBiochem.value) step.value = 2;
-                else if(hasImmuno.value) step.value = 4;
-                else step.value = 6;
-            } 
-            else if(step.value === 2 || step.value === 3) {
-                if(hasImmuno.value) step.value = 4;
-                else step.value = 6;
-            }
-            else if(step.value === 4 || step.value === 5) {
-                step.value = 6;
-            }
+            if(step.value === 1) { if(hasBiochem.value) step.value = 2; else if(hasImmuno.value) step.value = 4; else step.value = 6; } 
+            else if(step.value === 2 || step.value === 3) { if(hasImmuno.value) step.value = 4; else step.value = 6; }
+            else step.value = 6;
         };
 
-        const goBack = () => {
-            if(history.value.length > 0) step.value = history.value.pop();
-            searchQuery.value = "";
-        };
+        const goBack = () => { if(history.value.length > 0) step.value = history.value.pop(); searchQuery.value = ""; };
 
-        const summaryGroups = computed(() => {
-            return {
-                "📌 已選儀器": { key: 'instruments', items: selections.value.instruments, color: 'bg-blue-600' },
-                "🧪 生化項目": { key: 'biochem', items: [...selections.value.biochemCommon, ...selections.value.biochemRare], color: 'bg-green-600' },
-                "🧬 免疫項目": { key: 'immuno', items: [...selections.value.immunoCommon, ...selections.value.immunoRare], color: 'bg-orange-600' }
-            };
-        });
+        const summaryGroups = computed(() => ({
+            "📌 已選儀器": { key: 'instruments', items: selections.value.instruments, color: 'bg-blue-600' },
+            "🧪 生化項目": { key: 'biochem', items: [...selections.value.biochemCommon, ...selections.value.biochemRare], color: 'bg-green-600' },
+            "🧬 免疫項目": { key: 'immuno', items: [...selections.value.immunoCommon, ...selections.value.immunoRare], color: 'bg-orange-600' }
+        }));
 
         const removeItem = (groupKey, item) => {
-            if (groupKey === 'instruments') {
-                selections.value.instruments = selections.value.instruments.filter(i => i !== item);
-            } else if (groupKey === 'biochem') {
-                selections.value.biochemCommon = selections.value.biochemCommon.filter(i => i !== item);
-                selections.value.biochemRare = selections.value.biochemRare.filter(i => i !== item);
-            } else if (groupKey === 'immuno') {
-                selections.value.immunoCommon = selections.value.immunoCommon.filter(i => i !== item);
-                selections.value.immunoRare = selections.value.immunoRare.filter(i => i !== item);
-            }
+            if (groupKey === 'instruments') selections.value.instruments = selections.value.instruments.filter(i => i !== item);
+            else if (groupKey === 'biochem') { selections.value.biochemCommon = selections.value.biochemCommon.filter(i => i !== item); selections.value.biochemRare = selections.value.biochemRare.filter(i => i !== item); }
+            else { selections.value.immunoCommon = selections.value.immunoCommon.filter(i => i !== item); selections.value.immunoRare = selections.value.immunoRare.filter(i => i !== item); }
         };
 
         const exportExcel = async () => {
@@ -442,11 +399,7 @@ createApp({
             
             selections.value.instruments.forEach(inst => {
                 const buffers = db.value.bufferMap[inst];
-                if (buffers) {
-                    buffers.forEach(buf => {
-                        if (buf.name || buf.num) records.push({ "四大類": "儀器", "產品名稱": buf.name, "產品貨號": buf.num });
-                    });
-                }
+                if (buffers) buffers.forEach(buf => { if (buf.name || buf.num) records.push({ "四大類": "儀器", "產品名稱": buf.name, "產品貨號": buf.num }); });
             });
 
             const allSelectedItems = [...selections.value.biochemCommon, ...selections.value.biochemRare, ...selections.value.immunoCommon, ...selections.value.immunoRare];
@@ -455,36 +408,23 @@ createApp({
 
             allSelectedItems.forEach(item => {
                 const upperItem = item.toUpperCase().trim();
-                
-                // 處理第一頁總表資料
                 const detail = db.value.itemMap[upperItem];
                 if (detail) {
                     if(detail.C || detail.A) records.push({ "四大類": "試劑", "產品名稱": detail.C, "產品貨號": detail.A });
                     if(detail.O || detail.N) records.push({ "四大類": "校正", "產品名稱": detail.O, "產品貨號": detail.N });
                     if(detail.W || detail.V) records.push({ "四大類": "品管", "產品名稱": detail.W, "產品貨號": detail.V });
                 }
-
-                // 🌟 處理第二頁細則資料：只比對項目名稱，整列完全拷貝
-                const matchedRows = db.value.rawDetails.filter(r => r.itemName === upperItem);
-                matchedRows.forEach(mr => {
-                    if (!seenDetailItems.has(mr)) {
-                        seenDetailItems.add(mr);
-                        detailOutputValues.push(mr.values); // 完全一模一樣的陣列拷貝
-                    }
-                });
+                db.value.rawDetails.filter(r => r.itemName === upperItem).forEach(mr => { if (!seenDetailItems.has(mr)) { seenDetailItems.add(mr); detailOutputValues.push(mr.values); } });
             });
 
-            // 總表去重複：只看「產品貨號」，絕對唯一
+            // 🌟 修正：移除「對應來源」，僅保留三欄並嚴格去重
             const uniqueRecords = [];
             const seenIds = new Set();
             const orderMap = { "儀器": 1, "試劑": 2, "校正": 3, "品管": 4 };
             
             records.forEach(r => {
                 const num = r["產品貨號"];
-                if (num && num !== "" && !seenIds.has(num)) {
-                    seenIds.add(num);
-                    uniqueRecords.push(r);
-                }
+                if (num && num !== "" && !seenIds.has(num)) { seenIds.add(num); uniqueRecords.push(r); }
             });
             uniqueRecords.sort((a, b) => orderMap[a["四大類"]] - orderMap[b["四大類"]]);
 
@@ -495,39 +435,25 @@ createApp({
             ];
             ws1.addRows(uniqueRecords);
 
-            // 🌟 寫入第二頁 (使用原始表頭陣列與原始資料陣列)
             if (detailOutputValues.length > 0 && db.value.detailHeaders) {
-                ws2.addRow(db.value.detailHeaders); // 寫入原始表頭
-                detailOutputValues.forEach(vals => {
-                    ws2.addRow(vals); // 寫入原始資料列
-                });
-
-                // 自動最適欄寬
+                const ws2Cols = [];
+                for(let i=1; i<db.value.detailHeaders.length; i++) ws2Cols.push({ header: db.value.detailHeaders[i] || '', key: `col${i}` });
+                ws2.columns = ws2Cols;
+                detailOutputValues.forEach(vals => { const rowObj = {}; for(let i=1; i<vals.length; i++) rowObj[`col${i}`] = vals[i]; ws2.addRow(rowObj); });
                 ws2.columns.forEach(column => {
                     let maxLength = 0;
                     column.eachCell({ includeEmpty: true }, cell => {
-                        let val = "";
-                        if (cell.value !== null && cell.value !== undefined) {
-                            if (typeof cell.value === 'object') {
-                                 val = cell.value.result !== undefined ? String(cell.value.result) : (cell.value.richText ? cell.value.richText.map(rt => rt.text).join('') : "");
-                            } else {
-                                 val = String(cell.value);
-                            }
-                        }
+                        const val = cell.value ? String(cell.value) : "";
                         let charLength = 0;
-                        for (let i = 0; i < val.length; i++) {
-                            charLength += val.charCodeAt(i) > 255 ? 2.2 : 1.1; 
-                        }
+                        for (let i = 0; i < val.length; i++) charLength += val.charCodeAt(i) > 255 ? 2.2 : 1.1; 
                         if (charLength > maxLength) maxLength = charLength;
                     });
                     column.width = Math.min(Math.max(maxLength + 2, 12), 60);
                 });
             }
 
-            // 美化與排版
             [ws1, ws2].forEach(ws => {
                 if (ws === ws2 && detailOutputValues.length === 0) return;
-
                 ws.getRow(1).height = 25;
                 ws.getRow(1).eachCell(cell => {
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F75B5' } };
@@ -535,31 +461,22 @@ createApp({
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
                     cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
                 });
-                
                 ws.eachRow((row, rowNumber) => {
                     if (rowNumber === 1) return;
                     row.height = 30;
                     row.eachCell((cell, colNumber) => {
                         cell.font = { size: 11 };
                         cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-                        let alignDir = 'center';
-                        if (ws === ws1 && colNumber === 2) alignDir = 'left';
-                        if (ws === ws2) alignDir = 'left';
+                        let alignDir = (ws === ws1 && colNumber === 2) || ws === ws2 ? 'left' : 'center';
                         cell.alignment = { vertical: 'middle', horizontal: alignDir, wrapText: true };
                     });
                 });
             });
-
             const buffer = await wb.xlsx.writeBuffer();
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
-        return {
-            step, loading, errorMessage, searchQuery, hasBiochem, hasImmuno,
-            currentTitle, filteredItems, isSelected, toggleSelection,
-            isAllSelected, toggleSelectAll, goNext, goBack, themeColor,
-            summaryGroups, groupedInsts, removeItem, loadDatabaseFromCloud, exportExcel
-        };
+        return { step, loading, errorMessage, searchQuery, hasBiochem, hasImmuno, currentTitle, filteredItems, isSelected, toggleSelection, isAllSelected, toggleSelectAll, goNext, goBack, themeColor, summaryGroups, groupedInsts, removeItem, loadDatabaseFromCloud, exportExcel };
     }
 }).mount('#app');
 </script>
