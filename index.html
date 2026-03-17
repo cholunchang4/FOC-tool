@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVD 試劑申請工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+
+<div id="app" class="max-w-5xl mx-auto p-4 md:p-6 h-screen flex flex-col">
+    
+    <div v-if="step > 0" class="flex flex-wrap items-center gap-2 mb-6 text-sm md:text-base font-bold text-gray-500">
+        <span :class="{'text-blue-600': step === 1}">1. 儀器選擇</span> ➔
+        <span :class="{'text-green-600': step === 2 || step === 3, 'opacity-40': !hasBiochem}">2. 生化項目</span> ➔
+        <span :class="{'text-orange-600': step === 4 || step === 5, 'opacity-40': !hasImmuno}">3. 免疫項目</span> ➔
+        <span :class="{'text-blue-600': step === 6}">4. 總表確認</span>
+    </div>
+
+    <div v-if="step === 0" class="flex flex-col items-center justify-center flex-grow bg-white rounded-xl shadow-lg border-2 border-gray-100 p-10">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-blue-700 mb-8">IVD 試劑申請工具</h1>
+        
+        <div v-if="loading" class="flex flex-col items-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+            <p class="text-xl text-blue-600 font-bold animate-pulse">正在從雲端同步最新資料庫，請稍候...</p>
+        </div>
+
+        <div v-if="errorMessage" class="flex flex-col items-center text-center max-w-lg">
+            <div class="text-6xl mb-4">⚠️</div>
+            <h2 class="text-2xl font-bold text-red-600 mb-2">資料庫載入失敗</h2>
+            <p class="text-gray-600 mb-6">{{ errorMessage }}</p>
+            <button @click="loadDatabaseFromCloud" class="px-6 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-bold rounded shadow transition">
+                🔄 重新嘗試
+            </button>
+        </div>
+    </div>
+
+    <div v-if="step > 0 && step < 6" class="flex flex-col flex-grow bg-white rounded-xl shadow-lg overflow-hidden">
+        
+        <div class="bg-gray-100 p-4 border-b flex flex-wrap gap-4 items-center justify-between sticky top-0 z-10">
+            <button @click="goBack" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold rounded shadow transition">
+                ⬅ 上一步
+            </button>
+
+            <div v-if="step > 1" class="flex items-center gap-2 flex-grow max-w-md">
+                <input type="text" v-model="searchQuery" placeholder="🔍 快速搜尋項目..." class="w-full px-4 py-2 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button @click="toggleSelectAll" class="whitespace-nowrap px-4 py-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-bold rounded transition">
+                    {{ isAllSelected ? '清除全選' : '全選' }}
+                </button>
+            </div>
+
+            <button @click="goNext" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded shadow transition">
+                下一步 ➔
+            </button>
+        </div>
+
+        <div class="p-4 flex justify-between items-center bg-white">
+            <h2 class="text-2xl font-extrabold" :class="themeColor.text">{{ currentTitle }}</h2>
+            <button v-if="step === 2" @click="step = 3" class="px-4 py-1 bg-orange-200 text-orange-800 rounded font-bold hover:bg-orange-300 transition">切換: 寡量生化</button>
+            <button v-if="step === 4" @click="step = 5" class="px-4 py-1 bg-orange-200 text-orange-800 rounded font-bold hover:bg-orange-300 transition">切換: 寡量免疫</button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-grow bg-gray-50">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <button v-for="item in filteredItems" :key="item" 
+                        @click="toggleSelection(item)"
+                        :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', 
+                                isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                    {{ item }}
+                </button>
+            </div>
+            <p v-if="filteredItems.length === 0" class="text-gray-400 text-center py-10">找不到符合的項目</p>
+        </div>
+    </div>
+
+    <div v-if="step === 6" class="flex flex-col flex-grow bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-gray-100 p-4 border-b flex justify-between items-center">
+            <button @click="goBack" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold rounded shadow transition">⬅ 上一步</button>
+            <button @click="exportExcel" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow transition">💾 確認並產出 Excel</button>
+        </div>
+        
+        <div class="p-6 overflow-y-auto flex-grow">
+            <h2 class="text-2xl font-extrabold text-blue-800 mb-6">最終確認清單 (點擊 [X] 可直接移除)</h2>
+            
+            <div v-for="(group, title) in summaryGroups" :key="title" class="mb-6">
+                <div v-if="group.items.length > 0" class="border rounded-lg overflow-hidden shadow-sm">
+                    <div class="px-4 py-2 font-bold text-white" :class="group.color">{{ title }}</div>
+                    <div class="p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3 bg-gray-50">
+                        <div v-for="item in group.items" :key="item" class="flex justify-between items-center bg-white border px-3 py-2 rounded shadow-sm">
+                            <span class="font-medium text-gray-700">{{ item }}</span>
+                            <button @click="removeItem(group.key, item)" class="text-red-500 hover:text-red-700 font-bold px-2 rounded hover:bg-red-50">X</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+    setup() {
+        const step = ref(0);
+        const loading = ref(true); // 預設為 true，一進畫面就顯示轉圈圈
+        const errorMessage = ref("");
+        const searchQuery = ref("");
+        const history = ref([]);
+
+        // 資料庫儲存
+        const db = ref({
+            instBiochem: [], instImmuno: [], instIse: [],
+            biochemCommon: [], biochemRare: [], immunoCommon: [], immunoRare: [],
+            bufferRecords: [], detailRecords: []
+        });
+
+        // 使用者選擇
+        const selections = ref({
+            instruments: [], biochemCommon: [], biochemRare: [], immunoCommon: [], immunoRare: []
+        });
+
+        const hasBiochem = computed(() => selections.value.instruments.some(i => db.value.instBiochem.includes(i)));
+        const hasImmuno = computed(() => selections.value.instruments.some(i => db.value.instImmuno.includes(i)));
+
+        // --- 核心邏輯：全自動從同目錄下載 Excel ---
+        const loadDatabaseFromCloud = async () => {
+            loading.value = true;
+            errorMessage.value = "";
+            try {
+                // 自動發出請求，去抓取同一個資料夾底下的 database.xlsx
+                const response = await fetch('./database.xlsx');
+                
+                if (!response.ok) {
+                    throw new Error(`找不到檔案 (HTTP 狀態碼: ${response.status})。請確認您已將 'database.xlsx' 上傳至 GitHub 且檔名完全正確 (全小寫)。`);
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(arrayBuffer);
+
+                const wsInst = workbook.getWorksheet('儀器表');
+                if(wsInst) {
+                    db.value.instBiochem = getColumnData(wsInst, '生化儀器');
+                    db.value.instImmuno = getColumnData(wsInst, '免疫儀器');
+                    db.value.instIse = getColumnData(wsInst, 'ISE 儀器');
+                }
+
+                const wsItem = workbook.getWorksheet('項目表');
+                if(wsItem) {
+                    db.value.biochemCommon = getColumnData(wsItem, '常用生化');
+                    db.value.biochemRare = getColumnData(wsItem, '寡量生化');
+                    db.value.immunoCommon = getColumnData(wsItem, '常用免疫');
+                    db.value.immunoRare = getColumnData(wsItem, '寡量免疫');
+                }
+
+                const wsBuffer = workbook.getWorksheet('儀器buffer');
+                if(wsBuffer) db.value.bufferRecords = parseSheetToJson(wsBuffer);
+
+                const wsDetail = workbook.getWorksheet('項目細則');
+                if(wsDetail) db.value.detailRecords = parseSheetToJson(wsDetail);
+
+                // 資料載入成功，自動跳轉到第一頁
+                step.value = 1; 
+            } catch (e) {
+                console.error(e);
+                errorMessage.value = e.message || "發生未知錯誤，無法解析 Excel 檔案。請確保檔案沒有毀損。";
+            } finally {
+                loading.value = false;
+            }
+        };
+
+        // 【重點】：Vue 啟動時，立刻自動執行載入動作
+        onMounted(() => {
+            loadDatabaseFromCloud();
+        });
+
+        const getColumnData = (worksheet, headerName) => {
+            let colIdx = -1;
+            const row1 = worksheet.getRow(1);
+            row1.eachCell((cell, colNumber) => {
+                if(cell.value === headerName) colIdx = colNumber;
+            });
+            if(colIdx === -1) return [];
+            
+            const data = [];
+            worksheet.getColumn(colIdx).eachCell((cell, rowNumber) => {
+                if(rowNumber > 1 && cell.value) data.push(cell.value.toString().trim());
+            });
+            return data;
+        };
+
+        const parseSheetToJson = (worksheet) => {
+            const result = [];
+            const headers = [];
+            worksheet.getRow(1).eachCell((cell, colNumber) => headers[colNumber] = cell.value.toString().trim());
+            
+            worksheet.eachRow((row, rowNumber) => {
+                if(rowNumber === 1) return;
+                const rowData = {};
+                row.eachCell((cell, colNumber) => {
+                    let val = cell.value;
+                    if(val && typeof val === 'object' && val.result) val = val.result; 
+                    rowData[headers[colNumber]] = val !== null && val !== undefined ? String(val).replace(/\.0$/, '') : ""; 
+                });
+                result.push(rowData);
+            });
+            return result;
+        };
+
+        // --- 頁面控制與排版邏輯 ---
+        const currentTitle = computed(() => {
+            switch(step.value) {
+                case 1: return "第一步：選擇儀器 (可複選)";
+                case 2: return "第二步：選擇常用生化";
+                case 3: return "選擇寡量生化";
+                case 4: return "第三步：選擇常用免疫";
+                case 5: return "選擇寡量免疫";
+                default: return "";
+            }
+        });
+
+        const currentList = computed(() => {
+            switch(step.value) {
+                case 1: return [...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse];
+                case 2: return db.value.biochemCommon;
+                case 3: return db.value.biochemRare;
+                case 4: return db.value.immunoCommon;
+                case 5: return db.value.immunoRare;
+                default: return [];
+            }
+        });
+
+        const currentSelectionKey = computed(() => {
+            switch(step.value) {
+                case 1: return 'instruments';
+                case 2: return 'biochemCommon';
+                case 3: return 'biochemRare';
+                case 4: return 'immunoCommon';
+                case 5: return 'immunoRare';
+                default: return null;
+            }
+        });
+
+        const filteredItems = computed(() => {
+            if(!searchQuery.value) return currentList.value;
+            return currentList.value.filter(item => item.toLowerCase().includes(searchQuery.value.toLowerCase()));
+        });
+
+        const themeColor = computed(() => {
+            if(step.value === 1) return { text: 'text-blue-800', unselected: 'bg-white border-gray-300 hover:border-blue-400 text-gray-700', selected: 'bg-blue-100 border-blue-500 text-blue-800 shadow-inner' };
+            if(step.value === 2 || step.value === 3) return { text: 'text-green-800', unselected: 'bg-white border-gray-300 hover:border-green-400 text-gray-700', selected: 'bg-green-100 border-green-500 text-green-800 shadow-inner' };
+            if(step.value === 4 || step.value === 5) return { text: 'text-orange-800', unselected: 'bg-white border-gray-300 hover:border-orange-400 text-gray-700', selected: 'bg-orange-100 border-orange-500 text-orange-800 shadow-inner' };
+            return { text: '', unselected: '', selected: '' };
+        });
+
+        const isSelected = (item) => selections.value[currentSelectionKey.value].includes(item);
+
+        const toggleSelection = (item) => {
+            const arr = selections.value[currentSelectionKey.value];
+            const idx = arr.indexOf(item);
+            if (idx > -1) arr.splice(idx, 1);
+            else arr.push(item);
+        };
+
+        const isAllSelected = computed(() => filteredItems.value.length > 0 && filteredItems.value.every(i => isSelected(i)));
+        const toggleSelectAll = () => {
+            if (isAllSelected.value) {
+                filteredItems.value.forEach(item => {
+                    const idx = selections.value[currentSelectionKey.value].indexOf(item);
+                    if(idx > -1) selections.value[currentSelectionKey.value].splice(idx, 1);
+                });
+            } else {
+                filteredItems.value.forEach(item => {
+                    if(!isSelected(item)) selections.value[currentSelectionKey.value].push(item);
+                });
+            }
+        };
+
+        const goNext = () => {
+            if(step.value === 1 && selections.value.instruments.length === 0) return alert("請至少選擇一台儀器！");
+            
+            history.value.push(step.value);
+            searchQuery.value = ""; 
+
+            if(step.value === 1) {
+                if(hasBiochem.value) step.value = 2;
+                else if(hasImmuno.value) step.value = 4;
+                else step.value = 6;
+            } 
+            else if(step.value === 2 || step.value === 3) {
+                if(hasImmuno.value) step.value = 4;
+                else step.value = 6;
+            }
+            else if(step.value === 4 || step.value === 5) {
+                step.value = 6;
+            }
+        };
+
+        const goBack = () => {
+            if(history.value.length > 0) step.value = history.value.pop();
+            searchQuery.value = "";
+        };
+
+        const summaryGroups = computed(() => {
+            return {
+                "📌 已選儀器": { key: 'instruments', items: selections.value.instruments, color: 'bg-blue-600' },
+                "🧪 生化項目": { key: 'biochem', items: [...selections.value.biochemCommon, ...selections.value.biochemRare], color: 'bg-green-600' },
+                "🧬 免疫項目": { key: 'immuno', items: [...selections.value.immunoCommon, ...selections.value.immunoRare], color: 'bg-orange-600' }
+            };
+        });
+
+        const removeItem = (groupKey, item) => {
+            if (groupKey === 'instruments') {
+                selections.value.instruments = selections.value.instruments.filter(i => i !== item);
+            } else if (groupKey === 'biochem') {
+                selections.value.biochemCommon = selections.value.biochemCommon.filter(i => i !== item);
+                selections.value.biochemRare = selections.value.biochemRare.filter(i => i !== item);
+            } else if (groupKey === 'immuno') {
+                selections.value.immunoCommon = selections.value.immunoCommon.filter(i => i !== item);
+                selections.value.immunoRare = selections.value.immunoRare.filter(i => i !== item);
+            }
+        };
+
+        // --- 匯出 Excel ---
+        const exportExcel = async () => {
+            const wb = new ExcelJS.Workbook();
+            const ws1 = wb.addWorksheet('試劑申請總表');
+            const ws2 = wb.addWorksheet('項目細則');
+
+            let records = [];
+            
+            const selectedInsts = selections.value.instruments;
+            selectedInsts.forEach(inst => {
+                if(db.value.bufferRecords.length > 0) {
+                    const instKey = Object.keys(db.value.bufferRecords[0]).find(k => k === inst);
+                    if(instKey) {
+                        const keys = Object.keys(db.value.bufferRecords[0]);
+                        const numKey = keys[keys.indexOf(instKey) + 1];
+                        
+                        db.value.bufferRecords.forEach(row => {
+                            if(row[instKey] && row[numKey]) {
+                                records.push({ "項目種類": "儀器", "產品名稱": row[instKey], "產品貨號": row[numKey] });
+                            }
+                        });
+                    }
+                }
+            });
+
+            const allItems = [...selections.value.biochemCommon, ...selections.value.biochemRare, ...selections.value.immunoCommon, ...selections.value.immunoRare];
+            const detailOutput = [];
+
+            db.value.detailRecords.forEach(row => {
+                const itemName = row['項目名稱'];
+                if(itemName && allItems.includes(itemName.trim())) {
+                    detailOutput.push(row);
+
+                    if(row['產品名稱'] || itemName) records.push({ "項目種類": "試劑", "產品名稱": itemName, "產品貨號": row['產品貨號'] });
+                    if(row['校正液名稱']) records.push({ "項目種類": "校正", "產品名稱": row['校正液名稱'], "產品貨號": row['校正液貨號'] });
+                    if(row['品管液名稱']) records.push({ "項目種類": "品管", "產品名稱": row['品管液名稱'], "產品貨號": row['品管液貨號'] });
+                }
+            });
+
+            const uniqueRecords = [];
+            const seenIds = new Set();
+            const orderMap = { "儀器": 1, "試劑": 2, "校正": 3, "品管": 4 };
+            
+            records.forEach(r => {
+                if (r["產品貨號"] && !seenIds.has(r["產品貨號"])) {
+                    seenIds.add(r["產品貨號"]);
+                    uniqueRecords.push(r);
+                }
+            });
+            uniqueRecords.sort((a, b) => orderMap[a["項目種類"]] - orderMap[b["項目種類"]]);
+
+            ws1.columns = [
+                { header: '項目種類', key: '項目種類', width: 15 },
+                { header: '產品名稱', key: '產品名稱', width: 50 },
+                { header: '產品貨號', key: '產品貨號', width: 25 }
+            ];
+            ws1.addRows(uniqueRecords);
+
+            if (detailOutput.length > 0) {
+                const headers = Object.keys(detailOutput[0]).filter(k => !k.startsWith('Unnamed'));
+                ws2.columns = headers.map(h => ({ header: h, key: h, width: 20 }));
+                
+                detailOutput.forEach(row => {
+                    const cleanRow = {};
+                    headers.forEach(h => cleanRow[h] = row[h]);
+                    ws2.addRow(cleanRow);
+                });
+            }
+
+            [ws1, ws2].forEach(ws => {
+                ws.getRow(1).height = 25;
+                ws.getRow(1).eachCell(cell => {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F75B5' } };
+                    cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 12 };
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                });
+                
+                ws.eachRow((row, rowNumber) => {
+                    if (rowNumber === 1) return;
+                    row.height = 30;
+                    row.eachCell((cell, colNumber) => {
+                        cell.font = { size: 11 };
+                        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                        cell.alignment = { vertical: 'middle', horizontal: (ws === ws1 && colNumber === 2) || ws === ws2 ? 'left' : 'center', wrapText: true };
+                    });
+                });
+            });
+
+            const buffer = await wb.xlsx.writeBuffer();
+            saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
+        };
+
+        return {
+            step, loading, errorMessage, searchQuery, hasBiochem, hasImmuno,
+            currentTitle, filteredItems, isSelected, toggleSelection,
+            isAllSelected, toggleSelectAll, goNext, goBack, themeColor,
+            summaryGroups, removeItem, loadDatabaseFromCloud, exportExcel
+        };
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
