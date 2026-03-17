@@ -25,7 +25,7 @@
         
         <div v-if="loading" class="flex flex-col items-center">
             <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-            <p class="text-xl text-blue-600 font-bold animate-pulse">正在從雲端同步最新資料庫，請稍候...</p>
+            <p class="text-xl text-blue-600 font-bold animate-pulse">正在從雲端同步最新資料庫...</p>
         </div>
 
         <div v-if="errorMessage" class="flex flex-col items-center text-center max-w-lg">
@@ -57,52 +57,43 @@
             </button>
         </div>
 
-        <div class="p-4 flex justify-between items-center bg-white">
+        <div class="p-4 flex justify-between items-center bg-white border-b">
             <h2 class="text-2xl font-extrabold" :class="themeColor.text">{{ currentTitle }}</h2>
             <button v-if="step === 2" @click="step = 3" class="px-4 py-1 bg-orange-200 text-orange-800 rounded font-bold hover:bg-orange-300 transition">切換: 寡量生化</button>
             <button v-if="step === 4" @click="step = 5" class="px-4 py-1 bg-orange-200 text-orange-800 rounded font-bold hover:bg-orange-300 transition">切換: 寡量免疫</button>
         </div>
 
         <div class="p-6 overflow-y-auto flex-grow bg-gray-50">
-            
             <div v-if="step === 1 && !searchQuery">
                 <div class="mb-8 bg-white p-5 rounded-lg shadow-sm border border-blue-100">
                     <h3 class="text-lg font-bold text-gray-700 mb-4 border-b-2 border-blue-200 pb-2 flex items-center gap-2">
                         <span class="text-2xl">🏢</span> 高通量系統 (Pro Series & 獨立 ISE)
                     </h3>
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <button v-for="item in groupedInsts.group1" :key="item" 
-                                @click="toggleSelection(item)"
-                                :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', 
-                                        isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                        <button v-for="item in groupedInsts.group1" :key="item" @click="toggleSelection(item)"
+                                :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             {{ item }}
                         </button>
                     </div>
                 </div>
-
                 <div class="mb-8 bg-white p-5 rounded-lg shadow-sm border border-blue-100">
                     <h3 class="text-lg font-bold text-gray-700 mb-4 border-b-2 border-blue-200 pb-2 flex items-center gap-2">
                         <span class="text-2xl">🏥</span> 中通量系統 (Pure Series)
                     </h3>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <button v-for="item in groupedInsts.group2" :key="item" 
-                                @click="toggleSelection(item)"
-                                :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', 
-                                        isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                        <button v-for="item in groupedInsts.group2" :key="item" @click="toggleSelection(item)"
+                                :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             {{ item }}
                         </button>
                     </div>
                 </div>
-
                 <div v-if="groupedInsts.other.length > 0" class="mb-8 bg-white p-5 rounded-lg shadow-sm border border-gray-200">
                     <h3 class="text-lg font-bold text-gray-600 mb-4 border-b-2 border-gray-200 pb-2 flex items-center gap-2">
                         <span class="text-2xl">⚙️</span> 其他儀器
                     </h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        <button v-for="item in groupedInsts.other" :key="item" 
-                                @click="toggleSelection(item)"
-                                :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', 
-                                        isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                        <button v-for="item in groupedInsts.other" :key="item" @click="toggleSelection(item)"
+                                :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             {{ item }}
                         </button>
                     </div>
@@ -111,10 +102,8 @@
 
             <div v-else>
                 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    <button v-for="item in filteredItems" :key="item" 
-                            @click="toggleSelection(item)"
-                            :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', 
-                                    isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                    <button v-for="item in filteredItems" :key="item" @click="toggleSelection(item)"
+                            :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', isSelected(item) ? themeColor.selected : themeColor.unselected]">
                         {{ item }}
                     </button>
                 </div>
@@ -159,10 +148,13 @@ createApp({
         const searchQuery = ref("");
         const history = ref([]);
 
+        // 全新架構的資料庫儲存
         const db = ref({
             instBiochem: [], instImmuno: [], instIse: [],
             biochemCommon: [], biochemRare: [], immunoCommon: [], immunoRare: [],
-            bufferRecords: [], detailRecords: []
+            bufferMap: {}, // 格式: { '機台名稱': [ {name: '...', num: '...'}, ... ] }
+            itemMap: {},   // 格式: { '項目名稱': { C: '...', A: '...', O: '...', N: '...', W: '...', V: '...' } }
+            rawDetails: [] // 用於產出第二個 Sheet (完整項目細則)
         });
 
         const selections = ref({
@@ -172,26 +164,27 @@ createApp({
         const hasBiochem = computed(() => selections.value.instruments.some(i => db.value.instBiochem.includes(i)));
         const hasImmuno = computed(() => selections.value.instruments.some(i => db.value.instImmuno.includes(i)));
 
+        // 核心文字解析：強效去除結尾 .0 與空白
         const getCellText = (cell) => {
             if (!cell || cell.value === null || cell.value === undefined) return "";
+            let val = "";
             if (typeof cell.value === 'object') {
-                if (cell.value.richText) return cell.value.richText.map(rt => rt.text).join('').trim();
-                else if (cell.value.result !== undefined) return String(cell.value.result).trim();
-                else return String(cell.text || "").trim();
+                if (cell.value.richText) val = cell.value.richText.map(rt => rt.text).join('');
+                else if (cell.value.result !== undefined) val = String(cell.value.result);
+                else val = String(cell.text || "");
+            } else {
+                val = String(cell.value);
             }
-            return String(cell.value).trim();
+            return val.replace(/\.0$/, '').trim(); // 確保貨號後面的 .0 被刪掉
         };
 
         const getColumnData = (worksheet, headerName) => {
             let colIdx = -1;
             const row1 = worksheet.getRow(1);
             const targetHeader = headerName.replace(/\s+/g, '');
-            
             row1.eachCell((cell, colNumber) => {
-                const text = getCellText(cell).replace(/\s+/g, '');
-                if (text === targetHeader) colIdx = colNumber;
+                if (getCellText(cell).replace(/\s+/g, '') === targetHeader) colIdx = colNumber;
             });
-            
             if(colIdx === -1) return [];
             
             const data = [];
@@ -204,30 +197,35 @@ createApp({
             return data;
         };
 
-        const parseSheetToJson = (worksheet) => {
-            const result = [];
-            const headers = [];
-            worksheet.getRow(1).eachCell((cell, colNumber) => {
-                headers[colNumber] = getCellText(cell);
-            });
+        // 🌟 嚴謹雙欄解析：不依賴標題字眼，強制「每兩欄為一組 (名稱/貨號)」
+        const parseBufferMap = (worksheet) => {
+            const bufferMap = {};
+            const row1 = worksheet.getRow(1);
             
-            worksheet.eachRow((row, rowNumber) => {
-                if(rowNumber === 1) return;
-                const rowData = {};
-                row.eachCell((cell, colNumber) => {
-                    if (headers[colNumber]) {
-                        rowData[headers[colNumber]] = getCellText(cell).replace(/\.0$/, ''); 
-                    }
-                });
-                result.push(rowData);
-            });
-            return result;
+            // i=1, 3, 5, 7... 每次跳2格
+            for (let c = 1; c <= worksheet.columnCount; c += 2) {
+                const instName = getCellText(row1.getCell(c));
+                // 如果是正常的儀器名稱 (不是 Unnamed 空白欄位)
+                if (instName && !instName.toLowerCase().startsWith('unnamed')) {
+                    bufferMap[instName] = [];
+                    worksheet.getColumn(c).eachCell((cell, rowNum) => {
+                        if (rowNum === 1) return; // 跳過標題
+                        const name = getCellText(cell);
+                        const num = getCellText(worksheet.getCell(rowNum, c + 1)); // 強制抓取右邊那格
+                        if (name || num) {
+                            bufferMap[instName].push({ name, num });
+                        }
+                    });
+                }
+            }
+            return bufferMap;
         };
 
         const loadDatabaseFromCloud = async () => {
             loading.value = true;
             errorMessage.value = "";
             try {
+                // 自動發出請求，加上時間戳記防止快取
                 const response = await fetch('./database.xlsx?t=' + new Date().getTime());
                 if (!response.ok) throw new Error(`找不到 database.xlsx，請確認檔案已上傳至 GitHub。`);
 
@@ -235,6 +233,7 @@ createApp({
                 const workbook = new ExcelJS.Workbook();
                 await workbook.xlsx.load(arrayBuffer);
 
+                // 1. 讀取儀器表
                 const wsInst = workbook.getWorksheet('儀器表');
                 if(wsInst) {
                     db.value.instBiochem = getColumnData(wsInst, '生化儀器');
@@ -242,6 +241,7 @@ createApp({
                     db.value.instIse = getColumnData(wsInst, 'ISE 儀器');
                 }
 
+                // 2. 讀取項目表
                 const wsItem = workbook.getWorksheet('項目表');
                 if(wsItem) {
                     db.value.biochemCommon = getColumnData(wsItem, '常用生化');
@@ -250,11 +250,42 @@ createApp({
                     db.value.immunoRare = getColumnData(wsItem, '寡量免疫');
                 }
 
+                // 3. 讀取儀器 Buffer (套用嚴謹雙欄解析)
                 const wsBuffer = workbook.getWorksheet('儀器buffer');
-                if(wsBuffer) db.value.bufferRecords = parseSheetToJson(wsBuffer);
+                if(wsBuffer) {
+                    db.value.bufferMap = parseBufferMap(wsBuffer);
+                }
 
+                // 4. 讀取項目細則 (精準對應 A,C,O,N,W,V)
                 const wsDetail = workbook.getWorksheet('項目細則');
-                if(wsDetail) db.value.detailRecords = parseSheetToJson(wsDetail);
+                if(wsDetail) {
+                    const headers = [];
+                    wsDetail.getRow(1).eachCell((cell, colNumber) => headers[colNumber] = getCellText(cell));
+                    
+                    db.value.rawDetails = []; // 存完整資料給 Sheet 2
+                    
+                    wsDetail.eachRow((row, rowNumber) => {
+                        if(rowNumber === 1) return;
+                        const rowData = {};
+                        row.eachCell((cell, colNumber) => {
+                            if (headers[colNumber]) rowData[headers[colNumber]] = getCellText(cell);
+                        });
+                        
+                        db.value.rawDetails.push(rowData);
+                        
+                        const cName = rowData['項目名稱'];
+                        if (cName) {
+                            db.value.itemMap[cName] = {
+                                'C': cName,
+                                'A': rowData['產品貨號'] || '',
+                                'O': rowData['校正液名稱'] || '',
+                                'N': rowData['校正液貨號'] || '',
+                                'W': rowData['品管液名稱'] || '',
+                                'V': rowData['品管液貨號'] || ''
+                            };
+                        }
+                    });
+                }
 
                 step.value = 1; 
             } catch (e) {
@@ -278,12 +309,12 @@ createApp({
             }
         });
 
+        // 儀器排版群組
         const groupedInsts = computed(() => {
             const exactG1 = ['ISE v1', 'ISE neo', 'cobas pro c 703', 'cobas pro c 503', 'cobas pro e 801'];
             const exactG2 = ['pure ISE', 'cobas pure c 303', 'cobas pure e 402'];
             const allLoaded = [...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse];
             const uniqueOther = [...new Set(allLoaded)].filter(i => !exactG1.includes(i) && !exactG2.includes(i));
-            
             return { group1: exactG1, group2: exactG2, other: uniqueOther };
         });
 
@@ -324,12 +355,10 @@ createApp({
         });
 
         const isSelected = (item) => selections.value[currentSelectionKey.value].includes(item);
-
         const toggleSelection = (item) => {
             const arr = selections.value[currentSelectionKey.value];
             const idx = arr.indexOf(item);
-            if (idx > -1) arr.splice(idx, 1);
-            else arr.push(item);
+            if (idx > -1) arr.splice(idx, 1); else arr.push(item);
         };
 
         const isAllSelected = computed(() => filteredItems.value.length > 0 && filteredItems.value.every(i => isSelected(i)));
@@ -348,7 +377,6 @@ createApp({
 
         const goNext = () => {
             if(step.value === 1 && selections.value.instruments.length === 0) return alert("請至少選擇一台儀器！");
-            
             history.value.push(step.value);
             searchQuery.value = ""; 
 
@@ -391,6 +419,7 @@ createApp({
             }
         };
 
+        // --- 匯出 Excel ---
         const exportExcel = async () => {
             const wb = new ExcelJS.Workbook();
             const ws1 = wb.addWorksheet('試劑申請總表');
@@ -398,62 +427,61 @@ createApp({
 
             let records = [];
             
-            const selectedInsts = selections.value.instruments;
-            selectedInsts.forEach(inst => {
-                if(db.value.bufferRecords.length > 0) {
-                    const instKey = Object.keys(db.value.bufferRecords[0]).find(k => k === inst);
-                    if(instKey) {
-                        const keys = Object.keys(db.value.bufferRecords[0]);
-                        const numKey = keys[keys.indexOf(instKey) + 1];
-                        
-                        db.value.bufferRecords.forEach(row => {
-                            if(row[instKey] && row[numKey]) {
-                                records.push({ "項目種類": "儀器", "產品名稱": row[instKey], "產品貨號": row[numKey] });
-                            }
-                        });
-                    }
+            // 1. 寫入儀器 Buffer
+            selections.value.instruments.forEach(inst => {
+                const buffers = db.value.bufferMap[inst];
+                if (buffers) {
+                    buffers.forEach(buf => {
+                        if (buf.name || buf.num) {
+                            records.push({ "分類": "儀器", "對應來源": inst, "所需名稱": buf.name, "產品貨號": buf.num });
+                        }
+                    });
                 }
             });
 
-            const allItems = [...selections.value.biochemCommon, ...selections.value.biochemRare, ...selections.value.immunoCommon, ...selections.value.immunoRare];
+            // 2. 寫入試劑、校正、品管
+            const allSelectedItems = [...selections.value.biochemCommon, ...selections.value.biochemRare, ...selections.value.immunoCommon, ...selections.value.immunoRare];
             const detailOutput = [];
 
-            db.value.detailRecords.forEach(row => {
-                const itemName = row['項目名稱'];
-                if(itemName && allItems.includes(itemName.trim())) {
-                    detailOutput.push(row);
-
-                    if(row['產品名稱'] || itemName) records.push({ "項目種類": "試劑", "產品名稱": itemName, "產品貨號": row['產品貨號'] });
-                    if(row['校正液名稱']) records.push({ "項目種類": "校正", "產品名稱": row['校正液名稱'], "產品貨號": row['校正液貨號'] });
-                    if(row['品管液名稱']) records.push({ "項目種類": "品管", "產品名稱": row['品管液名稱'], "產品貨號": row['品管液貨號'] });
+            allSelectedItems.forEach(item => {
+                const detail = db.value.itemMap[item];
+                if (detail) {
+                    // 總表新增
+                    if(detail.C || detail.A) records.push({ "分類": "試劑", "對應來源": item, "所需名稱": detail.C, "產品貨號": detail.A });
+                    if(detail.O || detail.N) records.push({ "分類": "校正", "對應來源": item, "所需名稱": detail.O, "產品貨號": detail.N });
+                    if(detail.W || detail.V) records.push({ "分類": "品管", "對應來源": item, "所需名稱": detail.W, "產品貨號": detail.V });
+                    
+                    // 準備項目細則資料 (找回對應的完整 raw 紀錄)
+                    const rawRecord = db.value.rawDetails.find(r => r['項目名稱'] === item);
+                    if (rawRecord) detailOutput.push(rawRecord);
                 }
             });
 
+            // 總表去重複 (依據 所需名稱 與 產品貨號)
             const uniqueRecords = [];
-            const seenIds = new Set();
-            const orderMap = { "儀器": 1, "試劑": 2, "校正": 3, "品管": 4 };
+            const seenKeys = new Set();
             
             records.forEach(r => {
-                if (r["產品貨號"] && !seenIds.has(r["產品貨號"])) {
-                    seenIds.add(r["產品貨號"]);
+                const key = `${r["所需名稱"]}_${r["產品貨號"]}`;
+                if (key !== "_" && !seenKeys.has(key)) { // 忽略名稱和貨號都是空的爛資料
+                    seenKeys.add(key);
                     uniqueRecords.push(r);
                 }
             });
-            uniqueRecords.sort((a, b) => orderMap[a["項目種類"]] - orderMap[b["項目種類"]]);
 
             // --- Sheet 1: 試劑申請總表 ---
             ws1.columns = [
-                { header: '項目種類', key: '項目種類', width: 15 },
-                { header: '產品名稱', key: '產品名稱', width: 50 },
-                { header: '產品貨號', key: '產品貨號', width: 25 }
+                { header: '分類', key: '分類', width: 10 },
+                { header: '對應來源', key: '對應來源', width: 20 },
+                { header: '所需名稱', key: '所需名稱', width: 45 },
+                { header: '產品貨號', key: '產品貨號', width: 20 }
             ];
             ws1.addRows(uniqueRecords);
 
             // --- Sheet 2: 項目細則 (帶有最適欄寬計算) ---
             if (detailOutput.length > 0) {
-                const headers = Object.keys(detailOutput[0]).filter(k => !k.startsWith('Unnamed'));
-                
-                // 初步不綁死寬度
+                // 過濾掉防呆標籤
+                const headers = Object.keys(detailOutput[0]).filter(k => !k.startsWith('Unnamed') && !k.startsWith('__empty_'));
                 ws2.columns = headers.map(h => ({ header: h, key: h }));
                 
                 detailOutput.forEach(row => {
@@ -462,21 +490,17 @@ createApp({
                     ws2.addRow(cleanRow);
                 });
 
-                // === 自動計算最適欄寬 (Auto-Fit) ===
+                // 自動最適欄寬
                 ws2.columns.forEach(column => {
                     let maxLength = 0;
                     column.eachCell({ includeEmpty: true }, cell => {
-                        const val = cell.value ? cell.value.toString() : "";
+                        const val = cell.value ? String(cell.value) : "";
                         let charLength = 0;
                         for (let i = 0; i < val.length; i++) {
-                            // 中文與全形字元算 2.2，一般英數算 1.1
-                            charLength += val.charCodeAt(i) > 255 ? 2.2 : 1.1;
+                            charLength += val.charCodeAt(i) > 255 ? 2.2 : 1.1; // 中文雙倍寬
                         }
-                        if (charLength > maxLength) {
-                            maxLength = charLength;
-                        }
+                        if (charLength > maxLength) maxLength = charLength;
                     });
-                    // 限制範圍：最窄 12，最寬 60 (避免長句子讓欄寬無限延伸)
                     column.width = Math.min(Math.max(maxLength + 2, 12), 60);
                 });
             }
@@ -497,11 +521,13 @@ createApp({
                     row.eachCell((cell, colNumber) => {
                         cell.font = { size: 11 };
                         cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-                        cell.alignment = { 
-                            vertical: 'middle', 
-                            horizontal: (ws === ws1 && colNumber === 2) || ws === ws2 ? 'left' : 'center', 
-                            wrapText: true 
-                        };
+                        
+                        // 總表：名稱靠左。細則：除了名稱，其餘可置中或靠左
+                        let alignDir = 'center';
+                        if (ws === ws1 && colNumber === 3) alignDir = 'left';
+                        if (ws === ws2) alignDir = 'left';
+
+                        cell.alignment = { vertical: 'middle', horizontal: alignDir, wrapText: true };
                     });
                 });
             });
