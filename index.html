@@ -64,15 +64,62 @@
         </div>
 
         <div class="p-6 overflow-y-auto flex-grow bg-gray-50">
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                <button v-for="item in filteredItems" :key="item" 
-                        @click="toggleSelection(item)"
-                        :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', 
-                                isSelected(item) ? themeColor.selected : themeColor.unselected]">
-                    {{ item }}
-                </button>
+            
+            <div v-if="step === 1 && !searchQuery">
+                <div class="mb-8 bg-white p-5 rounded-lg shadow-sm border border-blue-100">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4 border-b-2 border-blue-200 pb-2 flex items-center gap-2">
+                        <span class="text-2xl">🏢</span> 高通量系統 (Pro Series & 獨立 ISE)
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <button v-for="item in groupedInsts.group1" :key="item" 
+                                @click="toggleSelection(item)"
+                                :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', 
+                                        isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                            {{ item }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-8 bg-white p-5 rounded-lg shadow-sm border border-blue-100">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4 border-b-2 border-blue-200 pb-2 flex items-center gap-2">
+                        <span class="text-2xl">🏥</span> 中通量系統 (Pure Series)
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <button v-for="item in groupedInsts.group2" :key="item" 
+                                @click="toggleSelection(item)"
+                                :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', 
+                                        isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                            {{ item }}
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="groupedInsts.other.length > 0" class="mb-8 bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-600 mb-4 border-b-2 border-gray-200 pb-2 flex items-center gap-2">
+                        <span class="text-2xl">⚙️</span> 其他儀器
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <button v-for="item in groupedInsts.other" :key="item" 
+                                @click="toggleSelection(item)"
+                                :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', 
+                                        isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                            {{ item }}
+                        </button>
+                    </div>
+                </div>
             </div>
-            <p v-if="filteredItems.length === 0" class="text-gray-400 text-center py-10">找不到符合的項目</p>
+
+            <div v-else>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    <button v-for="item in filteredItems" :key="item" 
+                            @click="toggleSelection(item)"
+                            :class="['p-3 rounded-lg border-2 font-bold transition shadow-sm break-words', 
+                                    isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                        {{ item }}
+                    </button>
+                </div>
+                <p v-if="filteredItems.length === 0" class="text-gray-400 text-center py-10">找不到符合的項目</p>
+            </div>
         </div>
     </div>
 
@@ -107,19 +154,17 @@ const { createApp, ref, computed, onMounted } = Vue;
 createApp({
     setup() {
         const step = ref(0);
-        const loading = ref(true); // 預設為 true，一進畫面就顯示轉圈圈
+        const loading = ref(true); 
         const errorMessage = ref("");
         const searchQuery = ref("");
         const history = ref([]);
 
-        // 資料庫儲存
         const db = ref({
             instBiochem: [], instImmuno: [], instIse: [],
             biochemCommon: [], biochemRare: [], immunoCommon: [], immunoRare: [],
             bufferRecords: [], detailRecords: []
         });
 
-        // 使用者選擇
         const selections = ref({
             instruments: [], biochemCommon: [], biochemRare: [], immunoCommon: [], immunoRare: []
         });
@@ -127,17 +172,64 @@ createApp({
         const hasBiochem = computed(() => selections.value.instruments.some(i => db.value.instBiochem.includes(i)));
         const hasImmuno = computed(() => selections.value.instruments.some(i => db.value.instImmuno.includes(i)));
 
-        // --- 核心邏輯：全自動從同目錄下載 Excel ---
+        const getCellText = (cell) => {
+            if (!cell || cell.value === null || cell.value === undefined) return "";
+            if (typeof cell.value === 'object') {
+                if (cell.value.richText) return cell.value.richText.map(rt => rt.text).join('').trim();
+                else if (cell.value.result !== undefined) return String(cell.value.result).trim();
+                else return String(cell.text || "").trim();
+            }
+            return String(cell.value).trim();
+        };
+
+        const getColumnData = (worksheet, headerName) => {
+            let colIdx = -1;
+            const row1 = worksheet.getRow(1);
+            const targetHeader = headerName.replace(/\s+/g, '');
+            
+            row1.eachCell((cell, colNumber) => {
+                const text = getCellText(cell).replace(/\s+/g, '');
+                if (text === targetHeader) colIdx = colNumber;
+            });
+            
+            if(colIdx === -1) return [];
+            
+            const data = [];
+            worksheet.getColumn(colIdx).eachCell((cell, rowNumber) => {
+                if(rowNumber > 1) {
+                    const text = getCellText(cell);
+                    if(text) data.push(text);
+                }
+            });
+            return data;
+        };
+
+        const parseSheetToJson = (worksheet) => {
+            const result = [];
+            const headers = [];
+            worksheet.getRow(1).eachCell((cell, colNumber) => {
+                headers[colNumber] = getCellText(cell);
+            });
+            
+            worksheet.eachRow((row, rowNumber) => {
+                if(rowNumber === 1) return;
+                const rowData = {};
+                row.eachCell((cell, colNumber) => {
+                    if (headers[colNumber]) {
+                        rowData[headers[colNumber]] = getCellText(cell).replace(/\.0$/, ''); 
+                    }
+                });
+                result.push(rowData);
+            });
+            return result;
+        };
+
         const loadDatabaseFromCloud = async () => {
             loading.value = true;
             errorMessage.value = "";
             try {
-                // 自動發出請求，去抓取同一個資料夾底下的 database.xlsx
-                const response = await fetch('./database.xlsx');
-                
-                if (!response.ok) {
-                    throw new Error(`找不到檔案 (HTTP 狀態碼: ${response.status})。請確認您已將 'database.xlsx' 上傳至 GitHub 且檔名完全正確 (全小寫)。`);
-                }
+                const response = await fetch('./database.xlsx?t=' + new Date().getTime());
+                if (!response.ok) throw new Error(`找不到 database.xlsx，請確認檔案已上傳至 GitHub。`);
 
                 const arrayBuffer = await response.arrayBuffer();
                 const workbook = new ExcelJS.Workbook();
@@ -164,55 +256,17 @@ createApp({
                 const wsDetail = workbook.getWorksheet('項目細則');
                 if(wsDetail) db.value.detailRecords = parseSheetToJson(wsDetail);
 
-                // 資料載入成功，自動跳轉到第一頁
                 step.value = 1; 
             } catch (e) {
                 console.error(e);
-                errorMessage.value = e.message || "發生未知錯誤，無法解析 Excel 檔案。請確保檔案沒有毀損。";
+                errorMessage.value = e.message || "解析失敗，請確認資料格式。";
             } finally {
                 loading.value = false;
             }
         };
 
-        // 【重點】：Vue 啟動時，立刻自動執行載入動作
-        onMounted(() => {
-            loadDatabaseFromCloud();
-        });
+        onMounted(() => loadDatabaseFromCloud());
 
-        const getColumnData = (worksheet, headerName) => {
-            let colIdx = -1;
-            const row1 = worksheet.getRow(1);
-            row1.eachCell((cell, colNumber) => {
-                if(cell.value === headerName) colIdx = colNumber;
-            });
-            if(colIdx === -1) return [];
-            
-            const data = [];
-            worksheet.getColumn(colIdx).eachCell((cell, rowNumber) => {
-                if(rowNumber > 1 && cell.value) data.push(cell.value.toString().trim());
-            });
-            return data;
-        };
-
-        const parseSheetToJson = (worksheet) => {
-            const result = [];
-            const headers = [];
-            worksheet.getRow(1).eachCell((cell, colNumber) => headers[colNumber] = cell.value.toString().trim());
-            
-            worksheet.eachRow((row, rowNumber) => {
-                if(rowNumber === 1) return;
-                const rowData = {};
-                row.eachCell((cell, colNumber) => {
-                    let val = cell.value;
-                    if(val && typeof val === 'object' && val.result) val = val.result; 
-                    rowData[headers[colNumber]] = val !== null && val !== undefined ? String(val).replace(/\.0$/, '') : ""; 
-                });
-                result.push(rowData);
-            });
-            return result;
-        };
-
-        // --- 頁面控制與排版邏輯 ---
         const currentTitle = computed(() => {
             switch(step.value) {
                 case 1: return "第一步：選擇儀器 (可複選)";
@@ -224,9 +278,20 @@ createApp({
             }
         });
 
+        const groupedInsts = computed(() => {
+            const exactG1 = ['ISE v1', 'ISE neo', 'cobas pro c 703', 'cobas pro c 503', 'cobas pro e 801'];
+            const exactG2 = ['pure ISE', 'cobas pure c 303', 'cobas pure e 402'];
+            const allLoaded = [...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse];
+            const uniqueOther = [...new Set(allLoaded)].filter(i => !exactG1.includes(i) && !exactG2.includes(i));
+            
+            return { group1: exactG1, group2: exactG2, other: uniqueOther };
+        });
+
         const currentList = computed(() => {
             switch(step.value) {
-                case 1: return [...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse];
+                case 1: 
+                    const allLoaded = [...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse];
+                    return [...new Set([...groupedInsts.value.group1, ...groupedInsts.value.group2, ...allLoaded])];
                 case 2: return db.value.biochemCommon;
                 case 3: return db.value.biochemRare;
                 case 4: return db.value.immunoCommon;
@@ -326,7 +391,6 @@ createApp({
             }
         };
 
-        // --- 匯出 Excel ---
         const exportExcel = async () => {
             const wb = new ExcelJS.Workbook();
             const ws1 = wb.addWorksheet('試劑申請總表');
@@ -377,6 +441,7 @@ createApp({
             });
             uniqueRecords.sort((a, b) => orderMap[a["項目種類"]] - orderMap[b["項目種類"]]);
 
+            // --- Sheet 1: 試劑申請總表 ---
             ws1.columns = [
                 { header: '項目種類', key: '項目種類', width: 15 },
                 { header: '產品名稱', key: '產品名稱', width: 50 },
@@ -384,17 +449,39 @@ createApp({
             ];
             ws1.addRows(uniqueRecords);
 
+            // --- Sheet 2: 項目細則 (帶有最適欄寬計算) ---
             if (detailOutput.length > 0) {
                 const headers = Object.keys(detailOutput[0]).filter(k => !k.startsWith('Unnamed'));
-                ws2.columns = headers.map(h => ({ header: h, key: h, width: 20 }));
+                
+                // 初步不綁死寬度
+                ws2.columns = headers.map(h => ({ header: h, key: h }));
                 
                 detailOutput.forEach(row => {
                     const cleanRow = {};
                     headers.forEach(h => cleanRow[h] = row[h]);
                     ws2.addRow(cleanRow);
                 });
+
+                // === 自動計算最適欄寬 (Auto-Fit) ===
+                ws2.columns.forEach(column => {
+                    let maxLength = 0;
+                    column.eachCell({ includeEmpty: true }, cell => {
+                        const val = cell.value ? cell.value.toString() : "";
+                        let charLength = 0;
+                        for (let i = 0; i < val.length; i++) {
+                            // 中文與全形字元算 2.2，一般英數算 1.1
+                            charLength += val.charCodeAt(i) > 255 ? 2.2 : 1.1;
+                        }
+                        if (charLength > maxLength) {
+                            maxLength = charLength;
+                        }
+                    });
+                    // 限制範圍：最窄 12，最寬 60 (避免長句子讓欄寬無限延伸)
+                    column.width = Math.min(Math.max(maxLength + 2, 12), 60);
+                });
             }
 
+            // --- 美化與排版 ---
             [ws1, ws2].forEach(ws => {
                 ws.getRow(1).height = 25;
                 ws.getRow(1).eachCell(cell => {
@@ -410,7 +497,11 @@ createApp({
                     row.eachCell((cell, colNumber) => {
                         cell.font = { size: 11 };
                         cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-                        cell.alignment = { vertical: 'middle', horizontal: (ws === ws1 && colNumber === 2) || ws === ws2 ? 'left' : 'center', wrapText: true };
+                        cell.alignment = { 
+                            vertical: 'middle', 
+                            horizontal: (ws === ws1 && colNumber === 2) || ws === ws2 ? 'left' : 'center', 
+                            wrapText: true 
+                        };
                     });
                 });
             });
@@ -423,7 +514,7 @@ createApp({
             step, loading, errorMessage, searchQuery, hasBiochem, hasImmuno,
             currentTitle, filteredItems, isSelected, toggleSelection,
             isAllSelected, toggleSelectAll, goNext, goBack, themeColor,
-            summaryGroups, removeItem, loadDatabaseFromCloud, exportExcel
+            summaryGroups, groupedInsts, removeItem, loadDatabaseFromCloud, exportExcel
         };
     }
 }).mount('#app');
