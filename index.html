@@ -170,29 +170,31 @@
                     <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
                         <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">🏢</div> 高通量系統 <span class="text-sm font-medium text-slate-400 font-normal">Pro Series</span>
                     </h3>
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
                         <button v-for="item in groupedInsts.group1" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             {{ item }}
                         </button>
                     </div>
                 </div>
+                
                 <div class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
                     <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                     <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
                         <div class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">🏥</div> 中通量系統 <span class="text-sm font-medium text-slate-400 font-normal">Pure Series</span>
                     </h3>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
                         <button v-for="item in groupedInsts.group2" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             {{ item }}
                         </button>
                     </div>
                 </div>
+
                 <div v-if="groupedInsts.other.length > 0" class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
                     <div class="absolute top-0 left-0 w-1 h-full bg-slate-400"></div>
                     <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
                         <div class="p-2 bg-slate-200 text-slate-600 rounded-lg">⚙️</div> 其他設備
                     </h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
                         <button v-for="item in groupedInsts.other" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             {{ item }}
                         </button>
@@ -201,9 +203,9 @@
             </div>
 
             <div v-else-if="step === 6" class="mt-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
                     <button v-for="item in filteredOtherItems" :key="item.id" @click="toggleOtherSelection(item)" 
-                            :class="[isOtherSelected(item) ? themeColor.selected : themeColor.unselected, 'flex-col !items-start !text-left p-5 h-auto min-h-[6rem] justify-center w-full']">
+                            :class="[isOtherSelected(item) ? themeColor.selected : themeColor.unselected, 'flex-col !items-start !text-left p-5']">
                         <span class="font-extrabold text-lg mb-1 block w-full break-words">{{ item.name }}</span>
                         <span class="text-sm font-normal opacity-80 block w-full break-words mt-1 leading-relaxed" v-if="item.desc">{{ item.desc }}</span>
                     </button>
@@ -215,7 +217,7 @@
             </div>
 
             <div v-else class="mt-4">
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
                     <button v-for="item in filteredItems" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                         {{ item }}
                     </button>
@@ -532,8 +534,9 @@ createApp({
             );
         });
 
+        // 🌟 按鈕大小強制統一：使用 w-full h-full 填滿 Grid，並透過 auto-rows-fr 保證同高
         const themeColor = computed(() => {
-            const baseBtn = 'rounded-xl font-bold transition-all duration-300 ease-in-out flex items-center justify-center text-center min-h-[3.5rem] select-none ';
+            const baseBtn = 'w-full h-full rounded-xl font-bold transition-all duration-300 ease-in-out flex flex-col items-center justify-center text-center min-h-[4.5rem] break-words select-none ';
             
             if(step.value === 1) return { 
                 text: 'text-blue-900', 
@@ -735,7 +738,6 @@ createApp({
             }
 
             try {
-                // 1. 讀取 FOC 模板
                 const response = await fetch('./FOC template.xlsx?t=' + new Date().getTime());
                 if (!response.ok) throw new Error("找不到 FOC template.xlsx，請確認檔案已上傳至 GitHub。");
                 
@@ -743,10 +745,8 @@ createApp({
                 const wb = new ExcelJS.Workbook();
                 await wb.xlsx.load(arrayBuffer);
 
-                // 2. 尋找目標工作表
                 let ws = wb.worksheets.find(s => s.name.toLowerCase().includes('foc application')) || wb.worksheets[0];
 
-                // 3. 掃描表格尋找 Item code 插入點
                 let itemCodeRowIdx = -1;
                 ws.eachRow((row, rowNum) => {
                     const cellText = row.getCell(1).text ? String(row.getCell(1).text).toLowerCase() : '';
@@ -757,25 +757,22 @@ createApp({
 
                 const startRow = itemCodeRowIdx + 1;
 
-                // 🌟 4. 智慧探測：計算畫有框線的預設行數
                 let preAllocatedRows = 0;
                 while (true) {
                     const checkCell = ws.getCell(startRow + preAllocatedRows, 1);
-                    // 檢查儲存格是否具有 border 屬性
                     if (checkCell && checkCell.border && Object.keys(checkCell.border).length > 0) {
                         preAllocatedRows++;
                     } else {
-                        break; // 遇到沒有框線的儲存格，立刻停止
+                        break; 
                     }
-                    if (preAllocatedRows > 100) break; // 防呆
+                    if (preAllocatedRows > 100) break; 
                 }
 
                 if (preAllocatedRows === 0) preAllocatedRows = 8;
 
                 const requiredRows = uniqueRecords.length;
-                const templateRow = ws.getRow(startRow); // 取第一行當作拷貝格式的範本
+                const templateRow = ws.getRow(startRow); 
 
-                // 🌟 5. 動態插入新行 (保護下方留白區)
                 if (requiredRows > preAllocatedRows) {
                     const rowsToAdd = requiredRows - preAllocatedRows;
                     const insertPos = startRow + preAllocatedRows; 
@@ -792,14 +789,12 @@ createApp({
                     }
                 }
 
-                // 6. 填入貨號與名稱
                 uniqueRecords.forEach((item, index) => {
                     const targetRow = ws.getRow(startRow + index);
                     targetRow.getCell(1).value = item["產品貨號"];
                     targetRow.getCell(2).value = item["產品名稱"];
                 });
 
-                // 7. 輸出下載
                 const buffer = await wb.xlsx.writeBuffer();
                 saveAs(new Blob([buffer]), "FOC_Application_Form.xlsx");
 
