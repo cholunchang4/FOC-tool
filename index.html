@@ -203,11 +203,11 @@
             </div>
 
             <div v-else-if="step === 6" class="mt-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 auto-rows-fr">
                     <button v-for="item in filteredOtherItems" :key="item.id" @click="toggleOtherSelection(item)" 
-                            :class="[isOtherSelected(item) ? themeColor.selected : themeColor.unselected, 'flex-col !items-start !text-left p-5']">
-                        <span class="font-extrabold text-lg mb-1 block w-full break-words">{{ item.name }}</span>
-                        <span class="text-sm font-normal opacity-80 block w-full break-words mt-1 leading-relaxed" v-if="item.desc">{{ item.desc }}</span>
+                            :class="[isOtherSelected(item) ? themeColor.selected : themeColor.unselected, '!items-start !text-left p-4 !min-h-[4rem]']">
+                        <span class="font-extrabold text-lg block w-full break-words">{{ item.name }}</span>
+                        <span class="text-sm font-normal opacity-80 block w-full break-words mt-1 leading-snug" v-if="item.desc">{{ item.desc }}</span>
                     </button>
                 </div>
                 <div v-if="filteredOtherItems.length === 0" class="flex flex-col items-center justify-center py-20 text-slate-400">
