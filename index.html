@@ -53,7 +53,7 @@
                 </div>
                 <div class="flex items-start gap-3">
                     <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">5</div>
-                    <p>於「總表確認」頁面檢查，無誤後點擊<strong>「確認並產出 Excel」</strong>下載表單。</p>
+                    <p>於「總表確認」頁面檢查，無誤後點擊<strong>「產出 FOC 申請單」</strong>或一般總表。</p>
                 </div>
             </div>
             <div class="p-4 bg-slate-50 border-t border-slate-100 text-center">
@@ -226,15 +226,21 @@
     </div>
 
     <div v-if="step === 7" class="flex flex-col flex-grow bg-white rounded-3xl shadow-2xl ring-1 ring-slate-900/5 overflow-hidden">
-        <div class="bg-slate-50/80 backdrop-blur-md p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-10">
+        <div class="bg-slate-50/80 backdrop-blur-md p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-10 flex-wrap gap-4">
             <button @click="goBack" class="px-5 py-2.5 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 返回修改
             </button>
-            <button @click="exportExcel" class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                確認並產出 Excel
-            </button>
+            <div class="flex gap-3">
+                <button @click="exportExcel" class="px-6 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center gap-2">
+                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    一般總表匯出
+                </button>
+                <button @click="exportFOC" class="px-8 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white font-extrabold rounded-xl shadow-lg shadow-purple-200 hover:shadow-purple-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    產出 FOC 申請單
+                </button>
+            </div>
         </div>
         
         <div class="p-8 overflow-y-auto flex-grow bg-slate-50">
@@ -600,13 +606,8 @@ createApp({
             else if (groupKey === 'other') selections.value.otherItems = selections.value.otherItems.filter(i => i.name !== itemText);
         };
 
-        const exportExcel = async () => {
-            const wb = new ExcelJS.Workbook();
-            const ws1 = wb.addWorksheet('試劑申請總表');
-            const ws2 = wb.addWorksheet('項目細則');
-            
-            const disclaimerText = "⚠️ 本系統及產出資料僅供羅氏 (Roche) 內部專業人員使用，屬機密資訊，嚴禁外流或未經授權之分享。";
-
+        // 🌟 核心邏輯：擷取清單資料 (共用模組)
+        const generateExportData = () => {
             let records = [];
             
             selections.value.instruments.forEach(inst => {
@@ -642,6 +643,18 @@ createApp({
                 if (num && num !== "" && !seenIds.has(num)) { seenIds.add(num); uniqueRecords.push(r); }
             });
             uniqueRecords.sort((a, b) => orderMap[a["項目種類"]] - orderMap[b["項目種類"]]);
+
+            return { uniqueRecords, detailOutputValues };
+        };
+
+        // 一般總表匯出功能
+        const exportExcel = async () => {
+            const { uniqueRecords, detailOutputValues } = generateExportData();
+            
+            const wb = new ExcelJS.Workbook();
+            const ws1 = wb.addWorksheet('試劑申請總表');
+            const ws2 = wb.addWorksheet('項目細則');
+            const disclaimerText = "⚠️ 本系統及產出資料僅供羅氏 (Roche) 內部專業人員使用，屬機密資訊，嚴禁外流或未經授權之分享。";
 
             ws1.columns = [
                 { header: '項目種類', key: '項目種類', width: 15 },
@@ -706,7 +719,85 @@ createApp({
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
-        return { step, loading, errorMessage, searchQuery, hasBiochem, hasImmuno, progressWidth, currentTitle, filteredItems, filteredOtherItems, isSelected, isOtherSelected, toggleSelection, toggleOtherSelection, isAllSelected, toggleSelectAll, goNext, goBack, themeColor, summaryGroups, groupedInsts, removeItem, loadDatabaseFromCloud, exportExcel, showHelp };
+        // 🌟 新增：FOC 申請單自動帶入功能
+        const exportFOC = async () => {
+            const { uniqueRecords } = generateExportData();
+            if (uniqueRecords.length === 0) {
+                alert("目前沒有選擇任何項目，無法產出 FOC 表單！");
+                return;
+            }
+
+            try {
+                // 1. 讀取 FOC 模板
+                const response = await fetch('./FOC template.xlsx?t=' + new Date().getTime());
+                if (!response.ok) throw new Error("找不到 FOC template.xlsx，請確認檔案已上傳至 GitHub。");
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const wb = new ExcelJS.Workbook();
+                await wb.xlsx.load(arrayBuffer);
+
+                // 2. 尋找目標工作表 (FOC Application Form 或第一個工作表)
+                let ws = wb.worksheets.find(s => s.name.toLowerCase().includes('foc application')) || wb.worksheets[0];
+
+                // 3. 掃描表格，尋找插入點 (Item code 與 Applicant)
+                let itemCodeRowIdx = -1;
+                let applicantRowIdx = -1;
+
+                ws.eachRow((row, rowNum) => {
+                    const cellText = row.getCell(1).text ? row.getCell(1).text.toLowerCase() : '';
+                    if (cellText.includes('item code')) itemCodeRowIdx = rowNum;
+                    if (cellText.includes('applicant')) applicantRowIdx = rowNum;
+                });
+
+                if (itemCodeRowIdx === -1) {
+                    throw new Error("在模板中找不到 'Item code' 標題列！請確認 FOC template 格式。");
+                }
+
+                // 如果找不到 Applicant，就預設給個底下很遠的位子
+                if (applicantRowIdx === -1) applicantRowIdx = itemCodeRowIdx + 10;
+
+                const startRow = itemCodeRowIdx + 1; // 從 Item Code 的下一行開始填
+                const existingBlankRows = applicantRowIdx - startRow;
+                const requiredRows = uniqueRecords.length;
+
+                // 4. 動態增加行數並完美複製格式
+                if (requiredRows > existingBlankRows) {
+                    const rowsToAdd = requiredRows - existingBlankRows;
+                    const emptyData = Array(rowsToAdd).fill([]);
+                    
+                    // 從 Applicant 的位置將以下所有資料往下推
+                    ws.spliceRows(applicantRowIdx, 0, ...emptyData);
+
+                    // 取得用來當範本的格式列 (Item Code 的下一行)
+                    const templateRow = ws.getRow(startRow);
+                    
+                    for (let i = 0; i < rowsToAdd; i++) {
+                        const newRow = ws.getRow(applicantRowIdx + i);
+                        newRow.height = templateRow.height;
+                        templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                            newRow.getCell(colNumber).style = Object.assign({}, cell.style);
+                        });
+                    }
+                }
+
+                // 5. 填入貨號與名稱
+                uniqueRecords.forEach((item, index) => {
+                    const targetRow = ws.getRow(startRow + index);
+                    targetRow.getCell(1).value = item["產品貨號"];
+                    targetRow.getCell(2).value = item["產品名稱"];
+                });
+
+                // 6. 輸出下載
+                const buffer = await wb.xlsx.writeBuffer();
+                saveAs(new Blob([buffer]), "FOC_Application_Form.xlsx");
+
+            } catch (error) {
+                alert("匯出 FOC 表單失敗：" + error.message);
+                console.error(error);
+            }
+        };
+
+        return { step, loading, errorMessage, searchQuery, hasBiochem, hasImmuno, progressWidth, currentTitle, filteredItems, filteredOtherItems, isSelected, isOtherSelected, toggleSelection, toggleOtherSelection, isAllSelected, toggleSelectAll, goNext, goBack, themeColor, summaryGroups, groupedInsts, removeItem, loadDatabaseFromCloud, exportExcel, exportFOC, showHelp };
     }
 }).mount('#app');
 </script>
