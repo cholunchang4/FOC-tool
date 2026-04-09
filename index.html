@@ -173,6 +173,7 @@
                         </button>
                     </div>
                 </div>
+                
                 <div class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
                     <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                     <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
@@ -184,6 +185,7 @@
                         </button>
                     </div>
                 </div>
+
                 <div v-if="groupedInsts.other.length > 0" class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
                     <div class="absolute top-0 left-0 w-1 h-full bg-slate-400"></div>
                     <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
@@ -283,7 +285,7 @@ const { createApp, ref, computed, onMounted } = Vue;
 
 createApp({
     setup() {
-        const step = ref(0); // 0~7
+        const step = ref(0); 
         const loading = ref(true); 
         const errorMessage = ref("");
         const searchQuery = ref("");
@@ -606,7 +608,6 @@ createApp({
             else if (groupKey === 'other') selections.value.otherItems = selections.value.otherItems.filter(i => i.name !== itemText);
         };
 
-        // 🌟 核心邏輯：擷取清單資料 (共用模組)
         const generateExportData = () => {
             let records = [];
             
@@ -647,10 +648,8 @@ createApp({
             return { uniqueRecords, detailOutputValues };
         };
 
-        // 一般總表匯出功能
         const exportExcel = async () => {
             const { uniqueRecords, detailOutputValues } = generateExportData();
-            
             const wb = new ExcelJS.Workbook();
             const ws1 = wb.addWorksheet('試劑申請總表');
             const ws2 = wb.addWorksheet('項目細則');
@@ -719,7 +718,6 @@ createApp({
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
-        // 🌟 新增：FOC 申請單自動帶入功能
         const exportFOC = async () => {
             const { uniqueRecords } = generateExportData();
             if (uniqueRecords.length === 0) {
@@ -736,43 +734,52 @@ createApp({
                 const wb = new ExcelJS.Workbook();
                 await wb.xlsx.load(arrayBuffer);
 
-                // 2. 尋找目標工作表 (FOC Application Form 或第一個工作表)
+                // 2. 尋找目標工作表
                 let ws = wb.worksheets.find(s => s.name.toLowerCase().includes('foc application')) || wb.worksheets[0];
 
-                // 3. 掃描表格，尋找插入點 (Item code 與 Applicant)
+                // 3. 掃描表格尋找 Item code 插入點
                 let itemCodeRowIdx = -1;
-                let applicantRowIdx = -1;
-
                 ws.eachRow((row, rowNum) => {
-                    const cellText = row.getCell(1).text ? row.getCell(1).text.toLowerCase() : '';
+                    const cellText = row.getCell(1).text ? String(row.getCell(1).text).toLowerCase() : '';
                     if (cellText.includes('item code')) itemCodeRowIdx = rowNum;
-                    if (cellText.includes('applicant')) applicantRowIdx = rowNum;
                 });
 
-                if (itemCodeRowIdx === -1) {
-                    throw new Error("在模板中找不到 'Item code' 標題列！請確認 FOC template 格式。");
+                if (itemCodeRowIdx === -1) throw new Error("找不到 'Item code' 標題列！");
+
+                const startRow = itemCodeRowIdx + 1;
+
+                // 🌟 4. 智慧探測：計算畫有框線的預設行數
+                let preAllocatedRows = 0;
+                while (true) {
+                    const checkCell = ws.getCell(startRow + preAllocatedRows, 1);
+                    // 檢查儲存格是否具有 border 屬性
+                    if (checkCell && checkCell.border && Object.keys(checkCell.border).length > 0) {
+                        preAllocatedRows++;
+                    } else {
+                        break; // 遇到沒有框線的儲存格，立刻停止
+                    }
+                    if (preAllocatedRows > 100) break; // 防呆
                 }
 
-                // 如果找不到 Applicant，就預設給個底下很遠的位子
-                if (applicantRowIdx === -1) applicantRowIdx = itemCodeRowIdx + 10;
+                // 若因格式問題探測不到框線，預設給 8 行
+                if (preAllocatedRows === 0) preAllocatedRows = 8;
 
-                const startRow = itemCodeRowIdx + 1; // 從 Item Code 的下一行開始填
-                const existingBlankRows = applicantRowIdx - startRow;
                 const requiredRows = uniqueRecords.length;
+                const templateRow = ws.getRow(startRow); // 取第一行當作拷貝格式的範本
 
-                // 4. 動態增加行數並完美複製格式
-                if (requiredRows > existingBlankRows) {
-                    const rowsToAdd = requiredRows - existingBlankRows;
+                // 🌟 5. 動態插入新行 (保護下方留白區)
+                if (requiredRows > preAllocatedRows) {
+                    const rowsToAdd = requiredRows - preAllocatedRows;
+                    const insertPos = startRow + preAllocatedRows; // 從格線結束處插入
+                    
                     const emptyData = Array(rowsToAdd).fill([]);
                     
-                    // 從 Applicant 的位置將以下所有資料往下推
-                    ws.spliceRows(applicantRowIdx, 0, ...emptyData);
-
-                    // 取得用來當範本的格式列 (Item Code 的下一行)
-                    const templateRow = ws.getRow(startRow);
+                    // 插入空白列，原有的無框線區與 Applicant 區塊會被順勢往下推
+                    ws.spliceRows(insertPos, 0, ...emptyData);
                     
+                    // 替新插入的列套上框線格式
                     for (let i = 0; i < rowsToAdd; i++) {
-                        const newRow = ws.getRow(applicantRowIdx + i);
+                        const newRow = ws.getRow(insertPos + i);
                         newRow.height = templateRow.height;
                         templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
                             newRow.getCell(colNumber).style = Object.assign({}, cell.style);
@@ -780,14 +787,14 @@ createApp({
                     }
                 }
 
-                // 5. 填入貨號與名稱
+                // 6. 填入貨號與名稱
                 uniqueRecords.forEach((item, index) => {
                     const targetRow = ws.getRow(startRow + index);
                     targetRow.getCell(1).value = item["產品貨號"];
                     targetRow.getCell(2).value = item["產品名稱"];
                 });
 
-                // 6. 輸出下載
+                // 7. 輸出下載
                 const buffer = await wb.xlsx.writeBuffer();
                 saveAs(new Blob([buffer]), "FOC_Application_Form.xlsx");
 
