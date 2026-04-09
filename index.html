@@ -172,7 +172,7 @@
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
                         <button v-for="item in groupedInsts.group1" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
-                            {{ item }}
+                            <span v-html="formatButtonText(item, step)"></span>
                         </button>
                     </div>
                 </div>
@@ -184,7 +184,7 @@
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
                         <button v-for="item in groupedInsts.group2" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
-                            {{ item }}
+                            <span v-html="formatButtonText(item, step)"></span>
                         </button>
                     </div>
                 </div>
@@ -196,7 +196,7 @@
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
                         <button v-for="item in groupedInsts.other" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
-                            {{ item }}
+                            <span v-html="formatButtonText(item, step)"></span>
                         </button>
                     </div>
                 </div>
@@ -219,7 +219,7 @@
             <div v-else class="mt-4">
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
                     <button v-for="item in filteredItems" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
-                        {{ item }}
+                        <span v-html="formatButtonText(item, step)"></span>
                     </button>
                 </div>
                 <div v-if="filteredItems.length === 0" class="flex flex-col items-center justify-center py-20 text-slate-400">
@@ -326,6 +326,16 @@ createApp({
             if (step.value === 7) return '100%';
             return '0%';
         });
+
+        // 🌟 智慧字詞黏著引擎：專門處理儀器名稱的換行與不換行空白
+        const formatButtonText = (name, currentStep) => {
+            if (!name) return "";
+            if (currentStep === 1) {
+                // 將 cobas pro c 703 轉換為 cobas pro<br>c&nbsp;703
+                return name.replace(/ (c|e) (\d{3})/ig, '<br>$1&nbsp;$2');
+            }
+            return name;
+        };
 
         const getCellText = (cell) => {
             if (!cell || cell.value === null || cell.value === undefined) return "";
@@ -803,7 +813,7 @@ createApp({
             }
         };
 
-        return { step, loading, errorMessage, searchQuery, hasBiochem, hasImmuno, progressWidth, currentTitle, filteredItems, filteredOtherItems, isSelected, isOtherSelected, toggleSelection, toggleOtherSelection, isAllSelected, toggleSelectAll, goNext, goBack, themeColor, summaryGroups, groupedInsts, removeItem, loadDatabaseFromCloud, exportExcel, exportFOC, showHelp };
+        return { step, loading, errorMessage, searchQuery, hasBiochem, hasImmuno, progressWidth, currentTitle, filteredItems, filteredOtherItems, isSelected, isOtherSelected, toggleSelection, toggleOtherSelection, isAllSelected, toggleSelectAll, goNext, goBack, formatButtonText, themeColor, summaryGroups, groupedInsts, removeItem, loadDatabaseFromCloud, exportExcel, exportFOC, showHelp };
     }
 }).mount('#app');
 </script>
