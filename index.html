@@ -198,11 +198,11 @@
             </div>
 
             <div v-else-if="step === 6" class="mt-4">
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <button v-for="item in filteredOtherItems" :key="item.id" @click="toggleOtherSelection(item)" 
-                            :class="[isOtherSelected(item) ? themeColor.selected : themeColor.unselected, 'flex-col !items-start !text-left p-4 h-auto min-h-[5.5rem] justify-center']">
-                        <span class="font-extrabold text-base mb-1 block w-full truncate">{{ item.name }}</span>
-                        <span class="text-xs font-normal opacity-80 line-clamp-2 leading-relaxed" v-if="item.desc">{{ item.desc }}</span>
+                            :class="[isOtherSelected(item) ? themeColor.selected : themeColor.unselected, 'flex-col !items-start !text-left p-5 h-auto min-h-[6rem] justify-center w-full']">
+                        <span class="font-extrabold text-lg mb-1 block w-full break-words">{{ item.name }}</span>
+                        <span class="text-sm font-normal opacity-80 block w-full break-words mt-1 leading-relaxed" v-if="item.desc">{{ item.desc }}</span>
                     </button>
                 </div>
                 <div v-if="filteredOtherItems.length === 0" class="flex flex-col items-center justify-center py-20 text-slate-400">
@@ -287,13 +287,13 @@ createApp({
         const db = ref({
             instBiochem: [], instImmuno: [], instIse: [],
             biochemCommon: [], biochemRare: [], immunoCommon: [], immunoRare: [],
-            otherItems: [], // 儲存其他耗材 [{id, name, desc}]
+            otherItems: [], 
             bufferMap: {}, itemMap: {}, rawDetails: [], detailHeaders: []    
         });
 
         const selections = ref({
             instruments: [], biochemCommon: [], biochemRare: [], immunoCommon: [], immunoRare: [],
-            otherItems: [] // 使用者選中的耗材 [{id, name, desc}]
+            otherItems: [] 
         });
 
         const hasBiochem = computed(() => selections.value.instruments.some(i => db.value.instBiochem.includes(i)));
@@ -394,7 +394,6 @@ createApp({
                 const wsBuffer = workbook.getWorksheet('儀器buffer');
                 if(wsBuffer) db.value.bufferMap = parseBufferMap(wsBuffer);
                 
-                // 🌟 解析新的「其他」工作表
                 const wsOther = workbook.getWorksheet('其他');
                 if(wsOther) {
                     const headers = [];
@@ -506,7 +505,6 @@ createApp({
             return list.filter(item => item.toLowerCase().includes(searchQuery.value.toLowerCase()));
         });
 
-        // 🌟 獨立處理其他耗材的搜尋 (因為它是物件結構)
         const filteredOtherItems = computed(() => {
             if (!searchQuery.value) return db.value.otherItems;
             const q = searchQuery.value.toLowerCase();
@@ -550,7 +548,6 @@ createApp({
             if (idx > -1) arr.splice(idx, 1); else arr.push(item);
         };
 
-        // 🌟 其他耗材的選取邏輯
         const isOtherSelected = (item) => selections.value.otherItems.some(i => i.id === item.id);
         const toggleOtherSelection = (item) => {
             const arr = selections.value.otherItems;
@@ -632,7 +629,6 @@ createApp({
                 db.value.rawDetails.filter(r => r.itemName === upperItem).forEach(mr => { if (!seenDetailItems.has(mr)) { seenDetailItems.add(mr); detailOutputValues.push(mr.values); } });
             });
 
-            // 加入其他耗材
             selections.value.otherItems.forEach(item => {
                 records.push({ "項目種類": "其他", "產品名稱": item.name, "產品貨號": item.id });
             });
