@@ -729,7 +729,6 @@ createApp({
             const seenIds = new Set();
             const orderMap = { "儀器": 1, "試劑": 2, "校正": 3, "品管": 4, "其他": 5 };
             
-            // 🌟 最終過濾階段：徹底清洗掉 "Biorad" 與 "隨盒" 等關鍵字
             records.forEach(r => {
                 const num = String(r["產品貨號"] || "").trim();
                 const name = String(r["產品名稱"] || "").trim();
@@ -737,8 +736,12 @@ createApp({
                 const lowerNum = num.toLowerCase();
                 const lowerName = name.toLowerCase();
 
-                // 若包含指定字眼，直接跳過不加入最終清單
-                if (lowerNum.includes("biorad") || lowerName.includes("biorad") || num.includes("隨盒") || name.includes("隨盒")) {
+                if (
+                    lowerNum.includes("biorad") || lowerName.includes("biorad") || 
+                    num.includes("隨盒") || name.includes("隨盒") ||
+                    lowerNum.includes("gluc2") || lowerName.includes("glucose hemolyzing reagent") ||
+                    lowerNum.includes("dibu") || lowerName.includes("special reagent")
+                ) {
                     return; 
                 }
 
@@ -868,17 +871,24 @@ createApp({
 
                 if (requiredRows > preAllocatedRows) {
                     const rowsToAdd = requiredRows - preAllocatedRows;
-                    const insertPos = startRow + preAllocatedRows; 
+                    // 【關鍵修正】在表格倒數第二行 (第29列) 插入新列，完美避開下方合併儲存格的干擾
+                    const insertPos = startRow + preAllocatedRows - 1; 
                     
                     const emptyData = Array(rowsToAdd).fill([]);
                     ws.spliceRows(insertPos, 0, ...emptyData);
                     
+                    // 從標準資料列 (第28列) 複製樣式給所有新長出來的行
                     const templateRow = ws.getRow(insertPos - 1);
                     for (let i = 0; i < rowsToAdd; i++) {
                         const newRow = ws.getRow(insertPos + i);
                         newRow.height = templateRow.height;
                         templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                            newRow.getCell(colNumber).style = cell.style; 
+                            const targetCell = newRow.getCell(colNumber);
+                            // 深度拷貝樣式，確保框線完全不流失
+                            if (cell.style) {
+                                targetCell.style = JSON.parse(JSON.stringify(cell.style));
+                            }
+                            targetCell.value = null; // 清除隱藏殘留字元
                         });
                     }
                 }
