@@ -28,7 +28,7 @@
             <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white flex justify-between items-center">
                 <h3 class="text-2xl font-extrabold flex items-center gap-2">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    系統使用說明
+                    {{ t('helpTitle') }}
                 </h3>
                 <button @click="showHelp = false" class="text-white/80 hover:text-white transition-colors focus:outline-none">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -37,28 +37,28 @@
             <div class="p-6 space-y-5 text-slate-600 font-medium">
                 <div class="flex items-start gap-3">
                     <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">1</div>
-                    <p>系統開啟後會<strong>自動同步雲端最新資料庫</strong>，不需手動上傳檔案。</p>
+                    <p v-html="t('help1')"></p>
                 </div>
                 <div class="flex items-start gap-3">
                     <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">2</div>
-                    <p>依序點擊選擇所需的<strong>「儀器設備」</strong>與對應的<strong>「試劑項目」</strong>。</p>
+                    <p v-html="t('help2')"></p>
                 </div>
                 <div class="flex items-start gap-3">
                     <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">3</div>
-                    <p>可利用畫面上方的<strong>「快速搜尋框」</strong>或<strong>「批次全選」</strong>功能大幅加速作業。</p>
+                    <p v-html="t('help3')"></p>
                 </div>
                 <div class="flex items-start gap-3">
                     <div class="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">4</div>
-                    <p>最後可加選提籃、架子等<strong>「其他耗材」</strong>。</p>
+                    <p v-html="t('help4')"></p>
                 </div>
                 <div class="flex items-start gap-3">
                     <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">5</div>
-                    <p>於「總表確認」頁面檢查，無誤後點擊<strong>「產出 FOC 申請單」</strong>或一般總表。</p>
+                    <p v-html="t('help5')"></p>
                 </div>
             </div>
             <div class="p-4 bg-slate-50 border-t border-slate-100 text-center">
                 <button @click="showHelp = false" class="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
-                    我知道了
+                    {{ t('gotIt') }}
                 </button>
             </div>
         </div>
@@ -73,45 +73,45 @@
         <div class="flex justify-between items-center w-full">
             <div class="flex flex-col items-center gap-2">
                 <div :class="['w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md transition-all duration-300', step >= 1 ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-white text-slate-400 border-2 border-slate-200']">1</div>
-                <span :class="['text-sm font-bold', step >= 1 ? 'text-blue-800' : 'text-slate-400']">儀器選擇</span>
+                <span :class="['text-sm font-bold', step >= 1 ? 'text-blue-800' : 'text-slate-400']">{{ t('step1') }}</span>
             </div>
             <div class="flex flex-col items-center gap-2" :class="{'opacity-40': !hasBiochem && step === 1}">
                 <div :class="['w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md transition-all duration-300', step >= 2 ? 'bg-emerald-500 text-white ring-4 ring-emerald-100' : 'bg-white text-slate-400 border-2 border-slate-200']">2</div>
-                <span :class="['text-sm font-bold', step >= 2 ? 'text-emerald-700' : 'text-slate-400']">生化項目</span>
+                <span :class="['text-sm font-bold', step >= 2 ? 'text-emerald-700' : 'text-slate-400']">{{ t('step2') }}</span>
             </div>
             <div class="flex flex-col items-center gap-2" :class="{'opacity-40': !hasImmuno && step < 4}">
                 <div :class="['w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md transition-all duration-300', step >= 4 ? 'bg-orange-500 text-white ring-4 ring-orange-100' : 'bg-white text-slate-400 border-2 border-slate-200']">3</div>
-                <span :class="['text-sm font-bold', step >= 4 ? 'text-orange-700' : 'text-slate-400']">免疫項目</span>
+                <span :class="['text-sm font-bold', step >= 4 ? 'text-orange-700' : 'text-slate-400']">{{ t('step3') }}</span>
             </div>
             <div class="flex flex-col items-center gap-2">
                 <div :class="['w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md transition-all duration-300', step >= 6 ? 'bg-purple-500 text-white ring-4 ring-purple-100' : 'bg-white text-slate-400 border-2 border-slate-200']">4</div>
-                <span :class="['text-sm font-bold', step >= 6 ? 'text-purple-700' : 'text-slate-400']">其他耗材</span>
+                <span :class="['text-sm font-bold', step >= 6 ? 'text-purple-700' : 'text-slate-400']">{{ t('step4') }}</span>
             </div>
             <div class="flex flex-col items-center gap-2">
                 <div :class="['w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md transition-all duration-300', step === 7 ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-white text-slate-400 border-2 border-slate-200']">5</div>
-                <span :class="['text-sm font-bold', step === 7 ? 'text-blue-800' : 'text-slate-400']">總表確認</span>
+                <span :class="['text-sm font-bold', step === 7 ? 'text-blue-800' : 'text-slate-400']">{{ t('step5') }}</span>
             </div>
         </div>
     </div>
 
     <!-- 頁面：全自動載入中 -->
     <div v-if="step === 0" class="flex flex-col items-center justify-center flex-grow bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl ring-1 ring-slate-900/5 p-10">
-        <h1 class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-600 mb-10 tracking-tight text-center">IVD 試劑申請系統</h1>
+        <h1 class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-600 mb-10 tracking-tight text-center">{{ t('title') }}</h1>
         
         <div v-if="loading" class="flex flex-col items-center">
             <div class="relative w-20 h-20 mb-6">
                 <div class="absolute inset-0 border-4 border-blue-100 rounded-full"></div>
                 <div class="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
             </div>
-            <p class="text-xl text-blue-800 font-bold animate-pulse text-center">正在與雲端資料庫安全同步中...</p>
+            <p class="text-xl text-blue-800 font-bold animate-pulse text-center">{{ t('syncing') }}</p>
         </div>
 
         <div v-if="errorMessage" class="flex flex-col items-center text-center max-w-lg bg-red-50 p-8 rounded-2xl border border-red-100">
             <div class="text-6xl mb-4">⚠️</div>
-            <h2 class="text-2xl font-bold text-red-600 mb-2">資料同步失敗</h2>
+            <h2 class="text-2xl font-bold text-red-600 mb-2">{{ t('syncFail') }}</h2>
             <p class="text-red-500/80 mb-6">{{ errorMessage }}</p>
             <button @click="loadDatabaseFromCloud" class="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-bold rounded-xl shadow-lg shadow-red-200 transition-all hover:-translate-y-0.5">
-                🔄 重新嘗試
+                {{ t('retry') }}
             </button>
         </div>
     </div>
@@ -125,11 +125,15 @@
             <div class="flex items-center gap-3">
                 <button @click="goBack" class="px-5 py-2.5 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    上一步
+                    <span class="hidden md:inline">{{ t('back') }}</span>
                 </button>
-                <button @click="showHelp = true" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 font-bold rounded-xl shadow-sm transition-all flex items-center gap-2" title="系統使用說明">
+                <button @click="showHelp = true" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 font-bold rounded-xl shadow-sm transition-all flex items-center gap-2" title="說明 / Help">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span class="hidden md:inline">說明</span>
+                    <span class="hidden md:inline">{{ t('help') }}</span>
+                </button>
+                <!-- 🌐 語言切換按鈕 -->
+                <button @click="toggleLang" class="px-5 py-2.5 bg-slate-100 border border-slate-300 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 font-extrabold rounded-xl shadow-sm transition-all flex items-center gap-2">
+                    🌐 <span>{{ lang === 'zh' ? 'EN' : '中文' }}</span>
                 </button>
             </div>
 
@@ -139,15 +143,15 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                    <input type="text" v-model="searchQuery" :placeholder="step === 6 ? '搜尋耗材名稱或描述...' : '快速搜尋試劑項目...'" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white shadow-sm">
+                    <input type="text" v-model="searchQuery" :placeholder="step === 6 ? t('searchPlaceholder2') : t('searchPlaceholder1')" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white shadow-sm">
                 </div>
                 <button @click="toggleSelectAll" class="whitespace-nowrap px-5 py-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 font-bold rounded-xl transition-all border border-indigo-100 shadow-sm">
-                    {{ isAllSelected ? '清除全選' : '批次全選' }}
+                    {{ isAllSelected ? t('clearAll') : t('selectAll') }}
                 </button>
             </div>
 
             <button @click="goNext" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
-                下一步
+                {{ t('next') }}
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
             </button>
         </div>
@@ -158,16 +162,16 @@
             
             <div class="flex gap-3">
                 <button v-if="step === 2" @click="step = 3" class="px-5 py-2.5 bg-gradient-to-r from-orange-50 to-amber-50 text-orange-700 border border-orange-200 rounded-xl font-bold hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                    切換: 寡量生化 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                    {{ t('switchBiochemR') }} <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                 </button>
                 <button v-if="step === 3" @click="step = 2" class="px-5 py-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 17H4m0 0l4 4m-4-4l4-4m0-6h12m0 0l-4-4m4 4l-4 4"></path></svg> 返回: 常用生化 
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 17H4m0 0l4 4m-4-4l4-4m0-6h12m0 0l-4-4m4 4l-4 4"></path></svg> {{ t('switchBiochemC') }} 
                 </button>
                 <button v-if="step === 4" @click="step = 5" class="px-5 py-2.5 bg-gradient-to-r from-orange-50 to-amber-50 text-orange-700 border border-orange-200 rounded-xl font-bold hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                    切換: 寡量免疫 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                    {{ t('switchImmunoR') }} <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                 </button>
                 <button v-if="step === 5" @click="step = 4" class="px-5 py-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 17H4m0 0l4 4m-4-4l4-4m0-6h12m0 0l-4-4m4 4l-4 4"></path></svg> 返回: 常用免疫
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 17H4m0 0l4 4m-4-4l4-4m0-6h12m0 0l-4-4m4 4l-4 4"></path></svg> {{ t('switchImmunoC') }}
                 </button>
             </div>
         </div>
@@ -180,10 +184,9 @@
                 <div class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
                     <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
                     <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
-                        <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">🏢</div> 高通量系統 <span class="text-sm font-medium text-slate-400 font-normal">Pro Series</span>
+                        <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">🏢</div> {{ t('catPro') }} <span class="text-sm font-medium text-slate-400 font-normal">{{ t('catProSub') }}</span>
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
-                        <!-- 🌟 儀器名稱套用 formatButtonText 濾鏡 -->
                         <button v-for="item in groupedInsts.group1" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             <span v-html="formatButtonText(item, step)"></span>
                         </button>
@@ -193,11 +196,22 @@
                 <div class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
                     <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                     <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
-                        <div class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">🏥</div> 中通量系統 <span class="text-sm font-medium text-slate-400 font-normal">Pure Series</span>
+                        <div class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">🏥</div> {{ t('catPure') }} <span class="text-sm font-medium text-slate-400 font-normal">{{ t('catPureSub') }}</span>
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
-                        <!-- 🌟 儀器名稱套用 formatButtonText 濾鏡 -->
                         <button v-for="item in groupedInsts.group2" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                            <span v-html="formatButtonText(item, step)"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                    <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
+                        <div class="p-2 bg-emerald-100 text-emerald-600 rounded-lg">🔬</div> {{ t('catDedicated') }} <span class="text-sm font-medium text-slate-400 font-normal">{{ t('catDedicatedSub') }}</span>
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
+                        <button v-for="item in groupedInsts.group3" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             <span v-html="formatButtonText(item, step)"></span>
                         </button>
                     </div>
@@ -206,10 +220,9 @@
                 <div v-if="groupedInsts.other.length > 0" class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
                     <div class="absolute top-0 left-0 w-1 h-full bg-slate-400"></div>
                     <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
-                        <div class="p-2 bg-slate-200 text-slate-600 rounded-lg">⚙️</div> 其他設備
+                        <div class="p-2 bg-slate-200 text-slate-600 rounded-lg">⚙️</div> {{ t('catOther') }}
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
-                        <!-- 🌟 儀器名稱套用 formatButtonText 濾鏡 -->
                         <button v-for="item in groupedInsts.other" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             <span v-html="formatButtonText(item, step)"></span>
                         </button>
@@ -228,7 +241,7 @@
                 </div>
                 <div v-if="filteredOtherItems.length === 0" class="flex flex-col items-center justify-center py-20 text-slate-400">
                     <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                    <p class="text-lg font-medium">無符合的其他耗材</p>
+                    <p class="text-lg font-medium">{{ t('noOtherItems') }}</p>
                 </div>
             </div>
 
@@ -241,7 +254,7 @@
                 </div>
                 <div v-if="filteredItems.length === 0" class="flex flex-col items-center justify-center py-20 text-slate-400">
                     <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <p class="text-lg font-medium">找不到符合的項目</p>
+                    <p class="text-lg font-medium">{{ t('noItems') }}</p>
                 </div>
             </div>
         </div>
@@ -254,22 +267,24 @@
             <div class="flex items-center gap-3">
                 <button @click="goBack" class="px-5 py-2.5 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    返回修改
+                    <span class="hidden md:inline">{{ t('backToEdit') }}</span>
                 </button>
                 <button @click="showHelp = true" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 font-bold rounded-xl shadow-sm transition-all flex items-center gap-2" title="系統使用說明">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span class="hidden md:inline">說明</span>
+                    <span class="hidden md:inline">{{ t('help') }}</span>
                 </button>
             </div>
 
             <div class="flex gap-3">
-                <button @click="exportExcel" class="px-6 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center gap-2">
-                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    一般總表匯出
+                <!-- 🌟 加入漸層色彩的「一般總表」按鈕 -->
+                <button @click="exportExcel" class="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    {{ t('exportGeneral') }}
                 </button>
-                <button @click="exportFOC" class="px-8 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white font-extrabold rounded-xl shadow-lg shadow-purple-200 hover:shadow-purple-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                <!-- 🌟 如果是英文版，則隱藏 FOC 產出按鈕 -->
+                <button v-if="lang === 'zh'" @click="exportFOC" class="px-8 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white font-extrabold rounded-xl shadow-lg shadow-purple-200 hover:shadow-purple-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    產出 FOC 申請單
+                    {{ t('exportFOC') }}
                 </button>
             </div>
         </div>
@@ -277,8 +292,8 @@
         <div class="p-8 overflow-y-auto flex-grow bg-slate-50">
             <div class="flex items-center gap-3 mb-8">
                 <div class="w-2 h-8 bg-blue-600 rounded-full"></div>
-                <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">最終清單確認</h2>
-                <span class="text-sm font-medium text-slate-500 ml-2 bg-slate-200 px-3 py-1 rounded-full hidden md:inline-block">點擊 [✕] 可直接移除項目</span>
+                <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">{{ t('finalConfirm') }}</h2>
+                <span class="text-sm font-medium text-slate-500 ml-2 bg-slate-200 px-3 py-1 rounded-full hidden md:inline-block">{{ t('removeHint') }}</span>
             </div>
             
             <div v-for="(group, title) in summaryGroups" :key="title" class="mb-8">
@@ -287,7 +302,7 @@
                     <div class="p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         <div v-for="item in group.items" :key="item" class="flex justify-between items-center bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl hover:border-slate-300 transition-colors group">
                             <span class="font-bold text-slate-700 truncate mr-2" :title="item">{{ item }}</span>
-                            <button @click="removeItem(group.key, item)" class="text-slate-300 hover:text-rose-500 font-bold p-1 rounded-lg hover:bg-rose-50 transition-colors opacity-50 group-hover:opacity-100 flex-shrink-0" title="移除此項">
+                            <button @click="removeItem(group.key, item)" class="text-slate-300 hover:text-rose-500 font-bold p-1 rounded-lg hover:bg-rose-50 transition-colors opacity-50 group-hover:opacity-100 flex-shrink-0" title="Remove">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         </div>
@@ -301,10 +316,10 @@
     <div class="mt-6 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-red-50 to-white p-4 md:px-6 rounded-2xl border-l-4 border-red-500 shadow-sm text-slate-600 text-sm font-medium">
         <div class="flex items-start gap-3">
             <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <p>⚠️ 本系統及產出之試劑資料，僅供 <strong>羅氏 (Roche)</strong> 內部專業人員使用，屬機密資訊，嚴禁外流或未經授權之分享。</p>
+            <p v-html="t('warnFooter')"></p>
         </div>
         <div class="text-slate-400 shrink-0 font-normal text-xs md:text-sm">
-            Designed & Developed by <span class="font-bold text-slate-500">Cholun Chang</span>
+            {{ t('devBy') }} <span class="font-bold text-slate-500">Cholun Chang</span>
         </div>
     </div>
 
@@ -313,8 +328,157 @@
 <script>
 const { createApp, ref, computed, onMounted } = Vue;
 
+const i18n = {
+    zh: {
+        title: "IVD 試劑申請系統",
+        syncing: "正在與雲端資料庫安全同步中...",
+        syncFail: "資料同步失敗",
+        retry: "🔄 重新嘗試",
+        step1: "儀器選擇",
+        step2: "生化項目",
+        step3: "免疫項目",
+        step4: "其他耗材",
+        step5: "總表確認",
+        helpTitle: "系統使用說明",
+        help1: "系統開啟後會<strong>自動同步雲端最新資料庫</strong>，不需手動上傳檔案。",
+        help2: "依序點擊選擇所需的<strong>「儀器設備」</strong>與對應的<strong>「試劑項目」</strong>。",
+        help3: "可利用畫面上方的<strong>「快速搜尋框」</strong>或<strong>「批次全選」</strong>功能大幅加速作業。",
+        help4: "最後可加選提籃、架子等<strong>「其他耗材」</strong>。",
+        help5: "於「總表確認」頁面檢查，無誤後點擊<strong>「產出 FOC 申請單」</strong>或一般總表。",
+        gotIt: "我知道了",
+        back: "上一步",
+        help: "說明",
+        next: "下一步",
+        searchPlaceholder1: "快速搜尋試劑項目...",
+        searchPlaceholder2: "搜尋耗材名稱或描述...",
+        selectAll: "批次全選",
+        clearAll: "清除全選",
+        backToEdit: "返回修改",
+        exportGeneral: "一般總表匯出",
+        exportFOC: "產出 FOC 申請單",
+        catPro: "高通量系統",
+        catProSub: "Pro Series",
+        catPure: "中通量系統",
+        catPureSub: "Pure Series",
+        catDedicated: "專屬系統",
+        catDedicatedSub: "Dedicated Series",
+        catOther: "其他設備",
+        noOtherItems: "無符合的其他耗材",
+        noItems: "找不到符合的項目",
+        titleInst: "選擇設備儀器",
+        titleBiochemC: "選擇【常用生化】試劑",
+        titleBiochemR: "選擇【寡量生化】試劑",
+        titleImmunoC: "選擇【常用免疫】試劑",
+        titleImmunoR: "選擇【寡量免疫】試劑",
+        titleOther: "加選【其他】耗材",
+        switchBiochemR: "切換: 寡量生化",
+        switchBiochemC: "返回: 常用生化",
+        switchImmunoR: "切換: 寡量免疫",
+        switchImmunoC: "返回: 常用免疫",
+        finalConfirm: "最終清單確認",
+        removeHint: "點擊 [✕] 可直接移除項目",
+        warnFooter: "⚠️ 本系統及產出之試劑資料，僅供 <strong>羅氏 (Roche)</strong> 內部專業人員使用，屬機密資訊，嚴禁外流或未經授權之分享。",
+        devBy: "Designed & Developed by",
+        alertNoInst: "請至少選擇一台設備儀器！",
+        alertNoItem: "目前沒有選擇任何項目，無法產出表單！",
+        alertSpace: "⚠️ 預留列數不足！\n您選擇了 {req} 個品項，但模板中只預留了 {pre} 行空白列。\n請先開啟您的 Excel 模板，手動「插入」足夠的空白列後，再重新產出！",
+        alertFail: "匯出失敗：",
+        errNoHeader: "找不到標題列！請確認表單格式。",
+        errNoFooter: "找不到底部簽名區(申請人/Applicant)！",
+        disclaimer: "⚠️ 本系統及產出資料僅供羅氏 (Roche) 內部專業人員使用，屬機密資訊，嚴禁外流或未經授權之分享。",
+        colType: "項目種類",
+        colName: "產品名稱",
+        colCode: "產品貨號",
+        typeInst: "儀器",
+        typeReag: "試劑",
+        typeCal: "校正",
+        typeCtrl: "品管",
+        typeOther: "其他",
+        groupInst: "📌 已選儀器",
+        groupBiochem: "🧪 生化項目",
+        groupImmuno: "🧬 免疫項目",
+        groupOther: "📦 其他耗材"
+    },
+    en: {
+        title: "IVD Reagent App System",
+        syncing: "Syncing securely with cloud database...",
+        syncFail: "Data Sync Failed",
+        retry: "🔄 Retry",
+        step1: "Instruments",
+        step2: "Biochem",
+        step3: "Immuno",
+        step4: "Consumables",
+        step5: "Summary",
+        helpTitle: "System Guide",
+        help1: "The system will <strong>automatically sync</strong> with the latest cloud database. No manual upload needed.",
+        help2: "Sequentially select the required <strong>Instruments</strong> and corresponding <strong>Reagents</strong>.",
+        help3: "Use the <strong>Quick Search</strong> or <strong>Select All</strong> functions to speed up your workflow.",
+        help4: "Finally, you may add <strong>Other Consumables</strong> such as racks or baskets.",
+        help5: "Review your items on the 'Summary' page, then click <strong>Export General Summary</strong>.",
+        gotIt: "Got it",
+        back: "Back",
+        help: "Help",
+        next: "Next",
+        searchPlaceholder1: "Quick search reagents...",
+        searchPlaceholder2: "Search consumables name or desc...",
+        selectAll: "Select All",
+        clearAll: "Clear All",
+        backToEdit: "Back to Edit",
+        exportGeneral: "Export General Summary",
+        exportFOC: "Export FOC Form",
+        catPro: "High-Throughput",
+        catProSub: "Pro Series",
+        catPure: "Mid-Throughput",
+        catPureSub: "Pure Series",
+        catDedicated: "Dedicated Systems",
+        catDedicatedSub: "Dedicated Series",
+        catOther: "Other Devices",
+        noOtherItems: "No matching consumables found",
+        noItems: "No matching items found",
+        titleInst: "Select Instruments",
+        titleBiochemC: "Select [Routine Biochem]",
+        titleBiochemR: "Select [Rare Biochem]",
+        titleImmunoC: "Select [Routine Immuno]",
+        titleImmunoR: "Select [Rare Immuno]",
+        titleOther: "Add [Other] Consumables",
+        switchBiochemR: "Switch: Rare Biochem",
+        switchBiochemC: "Back: Routine Biochem",
+        switchImmunoR: "Switch: Rare Immuno",
+        switchImmunoC: "Back: Routine Immuno",
+        finalConfirm: "Final List Confirmation",
+        removeHint: "Click [✕] to remove item",
+        warnFooter: "⚠️ This system and generated reagent data are for <strong>Roche</strong> internal professional use only. Confidential info, unauthorized distribution strictly prohibited.",
+        devBy: "Designed & Developed by",
+        alertNoInst: "Please select at least one instrument!",
+        alertNoItem: "No items selected. Cannot export form!",
+        alertSpace: "⚠️ Insufficient reserved rows!\nYou selected {req} items, but the template only has {pre} reserved blank rows.\nPlease open the Excel template, 'Insert' enough blank rows manually, and try again!",
+        alertFail: "Export failed: ",
+        errNoHeader: "Header row not found! Please check template format.",
+        errNoFooter: "Footer signature area (Applicant) not found!",
+        disclaimer: "⚠️ This system & data are for internal Roche professional use only. Unauthorized distribution strictly prohibited.",
+        colType: "Item Type",
+        colName: "Product Name",
+        colCode: "Material Code",
+        typeInst: "Instrument",
+        typeReag: "Reagent",
+        typeCal: "Calibrator",
+        typeCtrl: "Control",
+        typeOther: "Other",
+        groupInst: "📌 Selected Instruments",
+        groupBiochem: "🧪 Biochem Items",
+        groupImmuno: "🧬 Immuno Items",
+        groupOther: "📦 Other Consumables"
+    }
+};
+
 createApp({
     setup() {
+        const lang = ref('zh'); 
+        const t = (key) => i18n[lang.value][key] || key;
+        const tReplace = (key, req, pre) => t(key).replace('{req}', req).replace('{pre}', pre);
+        
+        const toggleLang = () => { lang.value = lang.value === 'zh' ? 'en' : 'zh'; };
+
         const step = ref(0); 
         const loading = ref(true); 
         const errorMessage = ref("");
@@ -326,7 +490,7 @@ createApp({
             instBiochem: [], instImmuno: [], instIse: [],
             biochemCommon: [], biochemRare: [], immunoCommon: [], immunoRare: [],
             otherItems: [], 
-            bufferMap: {}, itemMap: {}, rawDetails: [], detailHeaders: []    
+            bufferMap: {}, itemMap: {}, rawDetails: [], detailHeaders: []   
         });
 
         const selections = ref({
@@ -334,8 +498,8 @@ createApp({
             otherItems: [] 
         });
 
-        const hasBiochem = computed(() => selections.value.instruments.some(i => db.value.instBiochem.includes(i)));
-        const hasImmuno = computed(() => selections.value.instruments.some(i => db.value.instImmuno.includes(i)));
+        const hasBiochem = computed(() => selections.value.instruments.some(i => i !== 'cobas c 513' && db.value.instBiochem.includes(i)));
+        const hasImmuno = computed(() => selections.value.instruments.some(i => i !== 'cobas c 513' && db.value.instImmuno.includes(i)));
 
         const progressWidth = computed(() => {
             if (step.value <= 1) return '0%';
@@ -354,7 +518,6 @@ createApp({
             return name;
         };
 
-        // 🌟 強化的提取文字函數 (防止讀到 null 崩潰)
         const getCellText = (cell) => {
             if (!cell || cell.value === null || cell.value === undefined) return "";
             let val = "";
@@ -525,12 +688,12 @@ createApp({
 
         const currentTitle = computed(() => {
             switch(step.value) {
-                case 1: return "選擇設備儀器";
-                case 2: return "選擇【常用生化】試劑";
-                case 3: return "選擇【寡量生化】試劑";
-                case 4: return "選擇【常用免疫】試劑";
-                case 5: return "選擇【寡量免疫】試劑";
-                case 6: return "加選【其他】耗材";
+                case 1: return t('titleInst');
+                case 2: return t('titleBiochemC');
+                case 3: return t('titleBiochemR');
+                case 4: return t('titleImmunoC');
+                case 5: return t('titleImmunoR');
+                case 6: return t('titleOther');
                 default: return "";
             }
         });
@@ -538,13 +701,16 @@ createApp({
         const groupedInsts = computed(() => {
             const exactG1 = ['ISE v1', 'ISE neo', 'cobas pro c 703', 'cobas pro c 503', 'cobas pro e 801'];
             const exactG2 = ['pure ISE', 'cobas pure c 303', 'cobas pure e 402'];
+            const exactG3 = ['cobas c 513']; 
+            
             const allLoaded = [...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse];
-            const uniqueOther = [...new Set(allLoaded)].filter(i => !exactG1.includes(i) && !exactG2.includes(i));
-            return { group1: exactG1, group2: exactG2, other: uniqueOther };
+            const uniqueOther = [...new Set(allLoaded)].filter(i => !exactG1.includes(i) && !exactG2.includes(i) && !exactG3.includes(i));
+            
+            return { group1: exactG1, group2: exactG2, group3: exactG3, other: uniqueOther };
         });
 
         const filteredItems = computed(() => {
-            const list = step.value === 1 ? [...new Set([...groupedInsts.value.group1, ...groupedInsts.value.group2, ...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse])] : 
+            const list = step.value === 1 ? [...new Set([...groupedInsts.value.group1, ...groupedInsts.value.group2, ...groupedInsts.value.group3, ...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse])] : 
                          step.value === 2 ? db.value.biochemCommon :
                          step.value === 3 ? db.value.biochemRare :
                          step.value === 4 ? db.value.immunoCommon : db.value.immunoRare;
@@ -622,10 +788,14 @@ createApp({
         };
 
         const goNext = () => {
-            if(step.value === 1 && selections.value.instruments.length === 0) return alert("請至少選擇一台設備儀器！");
+            if(step.value === 1 && selections.value.instruments.length === 0) return alert(t('alertNoInst'));
             history.value.push(step.value);
             searchQuery.value = ""; 
-            if(step.value === 1) { if(hasBiochem.value) step.value = 2; else if(hasImmuno.value) step.value = 4; else step.value = 6; } 
+            if(step.value === 1) { 
+                if(hasBiochem.value) step.value = 2; 
+                else if(hasImmuno.value) step.value = 4; 
+                else step.value = 6; 
+            } 
             else if(step.value === 2 || step.value === 3) { if(hasImmuno.value) step.value = 4; else step.value = 6; }
             else if(step.value === 4 || step.value === 5) { step.value = 6; }
             else if(step.value === 6) { step.value = 7; }
@@ -634,10 +804,10 @@ createApp({
         const goBack = () => { if(history.value.length > 0) step.value = history.value.pop(); searchQuery.value = ""; };
 
         const summaryGroups = computed(() => ({
-            "📌 已選儀器": { key: 'instruments', items: selections.value.instruments, color: 'from-blue-600 to-indigo-600' },
-            "🧪 生化項目": { key: 'biochem', items: [...selections.value.biochemCommon, ...selections.value.biochemRare], color: 'from-teal-500 to-emerald-600' },
-            "🧬 免疫項目": { key: 'immuno', items: [...selections.value.immunoCommon, ...selections.value.immunoRare], color: 'from-orange-500 to-rose-500' },
-            "📦 其他耗材": { key: 'other', items: selections.value.otherItems.map(i => i.name), color: 'from-purple-500 to-fuchsia-600' }
+            [t('groupInst')]: { key: 'instruments', items: selections.value.instruments, color: 'from-blue-600 to-indigo-600' },
+            [t('groupBiochem')]: { key: 'biochem', items: [...selections.value.biochemCommon, ...selections.value.biochemRare], color: 'from-teal-500 to-emerald-600' },
+            [t('groupImmuno')]: { key: 'immuno', items: [...selections.value.immunoCommon, ...selections.value.immunoRare], color: 'from-orange-500 to-rose-500' },
+            [t('groupOther')]: { key: 'other', items: selections.value.otherItems.map(i => i.name), color: 'from-purple-500 to-fuchsia-600' }
         }));
 
         const removeItem = (groupKey, itemText) => {
@@ -652,63 +822,221 @@ createApp({
             
             selections.value.instruments.forEach(inst => {
                 const buffers = db.value.bufferMap[inst];
-                if (buffers) buffers.forEach(buf => { if (buf.name || buf.num) records.push({ "項目種類": "儀器", "產品名稱": buf.name, "產品貨號": buf.num }); });
+                if (buffers) buffers.forEach(buf => { if (buf.name || buf.num) records.push({ type: "inst", name: buf.name, code: buf.num }); });
             });
 
             const allSelectedItems = [...selections.value.biochemCommon, ...selections.value.biochemRare, ...selections.value.immunoCommon, ...selections.value.immunoRare];
             const detailOutputValues = [];
             const seenDetailItems = new Set();
 
+            const pushMultiLineRecords = (typeInternal, namesStr, codesStr) => {
+                if (!namesStr && !codesStr) return;
+                
+                let names = String(namesStr || "").split(/\n/).map(s => s.trim()).filter(s => s);
+                let codes = String(codesStr || "").split(/\n/).map(s => s.trim()).filter(s => s);
+                
+                if (codes.length === 1 && codes[0].includes(" ")) {
+                    codes = codes[0].split(/\s+/).filter(s => s);
+                }
+
+                const maxLen = Math.max(names.length, codes.length);
+                if (maxLen === 0) return;
+                
+                for (let i = 0; i < maxLen; i++) {
+                    const name = names[i] || names[names.length - 1] || "";
+                    const code = codes[i] || codes[codes.length - 1] || "";
+                    if (name.includes("4 x 5 mL")) continue; 
+                    records.push({ type: typeInternal, name: name, code: code });
+                }
+            };
+
             allSelectedItems.forEach(item => {
                 const upperItem = item.toUpperCase().trim();
                 const detail = db.value.itemMap[upperItem];
                 if (detail) {
-                    if(detail.C || detail.A) records.push({ "項目種類": "試劑", "產品名稱": detail.C, "產品貨號": detail.A });
-                    if(detail.O || detail.N) records.push({ "項目種類": "校正", "產品名稱": detail.O, "產品貨號": detail.N });
-                    if(detail.W || detail.V) records.push({ "項目種類": "品管", "產品名稱": detail.W, "產品貨號": detail.V });
+                    pushMultiLineRecords("reag", detail.C, detail.A);
+                    pushMultiLineRecords("cal", detail.O, detail.N);
+                    pushMultiLineRecords("ctrl", detail.W, detail.V);
                 }
-                db.value.rawDetails.filter(r => r.itemName === upperItem).forEach(mr => { if (!seenDetailItems.has(mr)) { seenDetailItems.add(mr); detailOutputValues.push(mr.values); } });
+                
+                db.value.rawDetails.filter(r => r.itemName === upperItem).forEach(mr => { 
+                    if (!seenDetailItems.has(mr)) { 
+                        seenDetailItems.add(mr); 
+                        detailOutputValues.push(mr.values); 
+                    } 
+                });
             });
 
             selections.value.otherItems.forEach(item => {
-                records.push({ "項目種類": "其他", "產品名稱": item.name, "產品貨號": item.id });
+                records.push({ type: "other", name: item.name, code: item.id });
             });
 
             const uniqueRecords = [];
             const seenIds = new Set();
-            const orderMap = { "儀器": 1, "試劑": 2, "校正": 3, "品管": 4, "其他": 5 };
+            const orderMap = { "inst": 1, "reag": 2, "cal": 3, "ctrl": 4, "other": 5 };
             
             records.forEach(r => {
-                const num = r["產品貨號"];
-                if (num && num !== "" && !seenIds.has(num)) { seenIds.add(num); uniqueRecords.push(r); }
+                const num = String(r.code || "").trim();
+                const name = String(r.name || "").trim();
+                const lowerNum = num.toLowerCase();
+                const lowerName = name.toLowerCase();
+
+                if (
+                    lowerNum.includes("biorad") || lowerName.includes("biorad") || 
+                    num.includes("隨盒") || name.includes("隨盒") ||
+                    lowerNum.includes("gluc2") || lowerName.includes("glucose hemolyzing reagent") ||
+                    lowerNum.includes("dibu") || lowerName.includes("special reagent")
+                ) {
+                    return; 
+                }
+
+                if (num && num !== "" && !seenIds.has(num)) { 
+                    seenIds.add(num); 
+                    uniqueRecords.push(r); 
+                }
             });
-            uniqueRecords.sort((a, b) => orderMap[a["項目種類"]] - orderMap[b["項目種類"]]);
+            uniqueRecords.sort((a, b) => orderMap[a.type] - orderMap[b.type]);
 
             return { uniqueRecords, detailOutputValues };
+        };
+
+        // 🌟 智慧翻譯攔截器 (攔截第二張表的所有內容，包含標題與特定儲存格中文字)
+        const translateContent = (text, currentLang) => {
+            if (currentLang === 'zh' || text === null || text === undefined) return text;
+            let tStr = String(text);
+            
+            // 標題與常見關鍵字翻譯字典 (依照字串長度排序避免部分取代錯誤)
+            const dict = {
+                "機上試劑效期": "On-board Stability (Days)",
+                "項目名稱": "Item Name",
+                "產品貨號": "Material Code",
+                "校正液名稱": "Calibrator Name",
+                "校正液貨號": "Calibrator Code",
+                "品管液名稱": "Control Name",
+                "品管液貨號": "Control Code",
+                "量測範圍": "Measuring Range",
+                "項目單位": "Unit",
+                "包裝數": "Pack Size",
+                "檢體量": "Sample Volume",
+                "測試數": "Tests",
+                "效期": "Stability",
+                "產品名稱": "Product Name",
+                "描述": "Description",
+                "備註": "Remark",
+                "貨號": "Code",
+                "名稱": "Name",
+                "溶血液應用": "Hemolysate App",
+                "全血應用": "Whole Blood App",
+                "腦脊髓液應用": "CSF App",
+                "尿液應用": "Urine App",
+                "血漿應用": "Plasma App",
+                "血清應用": "Serum App",
+                "血清/血漿": "Serum/Plasma",
+                "血清": "Serum",
+                "血漿": "Plasma",
+                "全血": "Whole Blood",
+                "尿液": "Urine",
+                "腦脊髓液": "CSF",
+                "溶血液": "Hemolysate",
+                "上清液": "Supernatant",
+                "水溶液": "Aqueous",
+                "羊水": "Amniotic fluid",
+                "個月": " Months",
+                "小時": " Hours",
+                "分鐘": " Mins",
+                "天": " Days",
+                "週": " Weeks",
+                "年": " Years",
+                "次": " Tests",
+                "反應": " Reactions",
+                "緩衝液": "Buffer",
+                "清洗液": "Wash",
+                "稀釋液": "Diluent",
+                "校正液": "Calibrator",
+                "品管液": "Control",
+                "試劑": "Reagent",
+                "通用": "Universal",
+                "專用": "Dedicated",
+                "一般": "General",
+                "其他": "Other",
+                "不適用": "N/A",
+                "未提供": "N/A",
+                "未知": "Unknown",
+                "請參閱": "Refer to ",
+                "仿單": "Package Insert",
+                "手冊": "Manual",
+                "無": "None",
+                "陰性": "Negative",
+                "陽性": "Positive",
+                "濃度": "Concentration",
+                "高": "High",
+                "低": "Low",
+                "中": "Medium",
+                "大於": ">",
+                "小於": "<",
+                "大約": "Approx.",
+                "見備註": "See remarks",
+                "參見": "See ",
+                "建議": "Recommended",
+                "：": ": ",
+                "，": ", ",
+                "、": ", ",
+                "（": " (",
+                "）": ")"
+            };
+
+            // 1. 完全比對 (主要針對表頭)
+            if (dict[tStr]) return dict[tStr];
+            
+            // 2. 局部比對替換 (針對混合字串)
+            const keys = Object.keys(dict).sort((a, b) => b.length - a.length);
+            for (const k of keys) {
+                if (tStr.includes(k)) {
+                    tStr = tStr.split(k).join(dict[k]);
+                }
+            }
+            return tStr;
         };
 
         const exportExcel = async () => {
             const { uniqueRecords, detailOutputValues } = generateExportData();
             const wb = new ExcelJS.Workbook();
-            const ws1 = wb.addWorksheet('試劑申請總表');
-            const ws2 = wb.addWorksheet('項目細則');
-            const disclaimerText = "⚠️ 本系統及產出資料僅供羅氏 (Roche) 內部專業人員使用，屬機密資訊，嚴禁外流或未經授權之分享。";
+            const ws1 = wb.addWorksheet('General Summary');
+            const ws2 = wb.addWorksheet('Item Details');
+            const disclaimerText = t('disclaimer');
 
             ws1.columns = [
-                { header: '項目種類', key: '項目種類', width: 15 },
-                { header: '產品名稱', key: '產品名稱', width: 50 },
-                { header: '產品貨號', key: '產品貨號', width: 25 }
+                { header: t('colType'), key: 'typeStr', width: 15 },
+                { header: t('colName'), key: 'name', width: 50 },
+                { header: t('colCode'), key: 'code', width: 25 }
             ];
-            ws1.addRows(uniqueRecords);
+            
+            const exportRows = uniqueRecords.map(r => {
+                let tStr = r.type === 'inst' ? t('typeInst') : r.type === 'reag' ? t('typeReag') : r.type === 'cal' ? t('typeCal') : r.type === 'ctrl' ? t('typeCtrl') : t('typeOther');
+                // 針對第一頁的 Name 欄位也進行翻譯替換
+                return { typeStr: tStr, name: translateContent(r.name, lang.value), code: r.code };
+            });
+            ws1.addRows(exportRows);
             
             ws1.spliceRows(1, 0, [disclaimerText]);
             ws1.mergeCells('A1:C1');
 
             if (detailOutputValues.length > 0 && db.value.detailHeaders) {
                 const ws2Cols = [];
-                for(let i=1; i<db.value.detailHeaders.length; i++) ws2Cols.push({ header: db.value.detailHeaders[i] || '', key: `col${i}` });
+                for(let i=1; i<db.value.detailHeaders.length; i++) {
+                    const translatedHeader = translateContent(db.value.detailHeaders[i] || '', lang.value);
+                    ws2Cols.push({ header: translatedHeader, key: `col${i}` });
+                }
                 ws2.columns = ws2Cols;
-                detailOutputValues.forEach(vals => { const rowObj = {}; for(let i=1; i<vals.length; i++) rowObj[`col${i}`] = vals[i]; ws2.addRow(rowObj); });
+                
+                detailOutputValues.forEach(vals => { 
+                    const rowObj = {}; 
+                    for(let i=1; i<vals.length; i++) {
+                        rowObj[`col${i}`] = translateContent(vals[i], lang.value);
+                    } 
+                    ws2.addRow(rowObj); 
+                });
+
                 ws2.columns.forEach(column => {
                     let maxLength = 0;
                     column.eachCell({ includeEmpty: true }, cell => {
@@ -754,21 +1082,28 @@ createApp({
                 });
             });
             const buffer = await wb.xlsx.writeBuffer();
-            saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
+            saveAs(new Blob([buffer]), "General_Summary.xlsx");
         };
 
-        // 🌟 強化版 FOC 產出：原生 Style 拷貝與智慧尋找
+        const colStrToNum = (str) => {
+            let num = 0;
+            for (let i = 0; i < str.length; i++) {
+                num = num * 26 + (str.charCodeAt(i) - 64);
+            }
+            return num;
+        };
+
         const exportFOC = async () => {
             const { uniqueRecords } = generateExportData();
             if (uniqueRecords.length === 0) {
-                alert("目前沒有選擇任何項目，無法產出 FOC 表單！");
+                alert(t('alertNoItem'));
                 return;
             }
 
             try {
                 const templateName = 'RDTW_0013_A01_FOC Application Form FOC 申請單.xlsx';
                 const response = await fetch('./' + templateName + '?t=' + new Date().getTime());
-                if (!response.ok) throw new Error("找不到 " + templateName + "，請確認檔案已上傳至 GitHub。");
+                if (!response.ok) throw new Error("File not found / 找不到檔案。");
                 
                 const arrayBuffer = await response.arrayBuffer();
                 const wb = new ExcelJS.Workbook();
@@ -779,78 +1114,154 @@ createApp({
                 let itemCodeRowIdx = -1;
                 let itemCodeColIdx = 1;
                 let descColIdx = 2;
+                let footerRowIdx = -1;
 
-                // 智慧全表掃描
                 ws.eachRow((row, rowNum) => {
-                    if (itemCodeRowIdx !== -1) return; 
-                    
+                    let rowText = "";
                     row.eachCell((cell, colNum) => {
-                        // 使用強化的 getCellText 確保絕對不會遇到 null 錯誤
                         const cellText = getCellText(cell).toLowerCase().replace(/\s+/g, '');
-                        
-                        if (cellText.includes('materialcode') || cellText.includes('itemcode') || cellText.includes('material') || cellText.includes('貨號')) {
-                            itemCodeRowIdx = rowNum;
-                            itemCodeColIdx = colNum;
-                        }
-                        if (cellText.includes('description') || cellText.includes('品名') || cellText.includes('產品名稱') || cellText.includes('product')) {
-                            descColIdx = colNum;
+                        rowText += cellText;
+                        if (itemCodeRowIdx === -1) {
+                            if (cellText.includes('materialcode') || cellText.includes('itemcode') || cellText.includes('material') || cellText.includes('貨號')) {
+                                itemCodeRowIdx = rowNum;
+                                itemCodeColIdx = colNum;
+                            }
+                            if (cellText.includes('description') || cellText.includes('品名') || cellText.includes('產品名稱') || cellText.includes('product')) {
+                                descColIdx = colNum;
+                            }
                         }
                     });
+
+                    if (itemCodeRowIdx !== -1 && rowNum > itemCodeRowIdx && footerRowIdx === -1) {
+                        if (rowText.includes('申請人') || rowText.includes('applicant') || rowText.includes('填寫說明')) {
+                            footerRowIdx = rowNum;
+                        }
+                    }
                 });
 
-                if (itemCodeRowIdx === -1) throw new Error("找不到 'Material Code' 或 '貨號' 標題列！請確認表單格式。");
+                if (itemCodeRowIdx === -1) throw new Error(t('errNoHeader'));
+                if (footerRowIdx === -1) throw new Error(t('errNoFooter'));
 
                 const startRow = itemCodeRowIdx + 1;
-
-                let preAllocatedRows = 0;
-                while (true) {
-                    const checkCell = ws.getCell(startRow + preAllocatedRows, itemCodeColIdx);
-                    if (checkCell && checkCell.border && Object.keys(checkCell.border).length > 0) {
-                        preAllocatedRows++;
-                    } else {
-                        break; 
-                    }
-                    if (preAllocatedRows > 100) break; 
-                }
-
-                if (preAllocatedRows === 0) preAllocatedRows = 8;
-
+                const preAllocatedRows = footerRowIdx - startRow;
                 const requiredRows = uniqueRecords.length;
-                const templateRow = ws.getRow(startRow); 
 
                 if (requiredRows > preAllocatedRows) {
-                    const rowsToAdd = requiredRows - preAllocatedRows;
-                    const insertPos = startRow + preAllocatedRows; 
-                    
-                    const emptyData = Array(rowsToAdd).fill([]);
-                    ws.spliceRows(insertPos, 0, ...emptyData);
-                    
-                    for (let i = 0; i < rowsToAdd; i++) {
-                        const newRow = ws.getRow(insertPos + i);
-                        newRow.height = templateRow.height;
-                        templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                            // 🌟 核心修復：使用原生的賦值來避免 Object.assign 破壞 prototype
-                            newRow.getCell(colNumber).style = cell.style; 
-                        });
-                    }
+                    alert(tReplace('alertSpace', requiredRows, preAllocatedRows));
+                    return;
                 }
 
                 uniqueRecords.forEach((item, index) => {
                     const targetRow = ws.getRow(startRow + index);
-                    targetRow.getCell(itemCodeColIdx).value = item["產品貨號"];
-                    targetRow.getCell(descColIdx).value = item["產品名稱"];
+                    targetRow.getCell(itemCodeColIdx).value = item.code;
+                    targetRow.getCell(descColIdx).value = item.name;
                 });
 
+                const shiftUpCount = preAllocatedRows - requiredRows;
+
+                if (shiftUpCount > 0) {
+                    let originalMerges = [];
+                    if (ws._merges) {
+                        for (const key in ws._merges) { originalMerges.push(key); }
+                    }
+                    originalMerges.forEach(ref => {
+                        try { ws.unmergeCells(ref); } catch(e) {}
+                    });
+
+                    const lastRow = ws.rowCount;
+                    for (let r = footerRowIdx; r <= lastRow; r++) {
+                        const newR = r - shiftUpCount;
+                        const srcRow = ws.getRow(r);
+                        const dstRow = ws.getRow(newR);
+                        
+                        dstRow.height = srcRow.height;
+                        
+                        for (let c = 1; c <= 20; c++) {
+                            const srcCell = srcRow.getCell(c);
+                            const dstCell = dstRow.getCell(c);
+                            
+                            dstCell.value = srcCell.value;
+                            if (srcCell.style && Object.keys(srcCell.style).length > 0) {
+                                dstCell.style = JSON.parse(JSON.stringify(srcCell.style));
+                            } else {
+                                dstCell.style = {};
+                            }
+                        }
+                    }
+
+                    for (let r = lastRow - shiftUpCount + 1; r <= lastRow; r++) {
+                        const row = ws.getRow(r);
+                        row.height = undefined;
+                        for (let c = 1; c <= 20; c++) {
+                            const cell = row.getCell(c);
+                            cell.value = null;
+                            cell.style = {};
+                        }
+                    }
+
+                    let newMergesToApply = [];
+                    originalMerges.forEach(ref => {
+                        const match = ref.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+                        if (match) {
+                            let [, startColStr, startR, endColStr, endR] = match;
+                            startR = parseInt(startR);
+                            endR = parseInt(endR);
+                            
+                            if (startR >= footerRowIdx) {
+                                startR -= shiftUpCount;
+                                endR -= shiftUpCount;
+                                newMergesToApply.push(`${startColStr}${startR}:${endColStr}${endR}`);
+                            } else if (startR < footerRowIdx && endR >= footerRowIdx) {
+                                endR -= shiftUpCount;
+                                newMergesToApply.push(`${startColStr}${startR}:${endColStr}${endR}`);
+                            } else if (startR >= startRow + requiredRows && endR < footerRowIdx) {
+                                // 落於被刪除的空白列範圍內，丟棄
+                            } else {
+                                newMergesToApply.push(ref);
+                            }
+                        } else {
+                            const singleMatch = ref.match(/([A-Z]+)(\d+)/);
+                            if (singleMatch) {
+                                let [, colStr, r] = singleMatch;
+                                r = parseInt(r);
+                                if (r >= footerRowIdx) r -= shiftUpCount;
+                                // 單格不需合併
+                            }
+                        }
+                    });
+
+                    // 強制清空，只保留左上角第一格內容，然後執行合併
+                    newMergesToApply.forEach(ref => {
+                        const match = ref.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+                        if (match) {
+                            let [, startColStr, startR, endColStr, endR] = match;
+                            startR = parseInt(startR);
+                            endR = parseInt(endR);
+                            const startColNum = colStrToNum(startColStr);
+                            const endColNum = colStrToNum(endColStr);
+                            
+                            for (let r = startR; r <= endR; r++) {
+                                for (let c = startColNum; c <= endColNum; c++) {
+                                    if (r !== startR || c !== startColNum) {
+                                        ws.getCell(r, c).value = null; 
+                                    }
+                                }
+                            }
+                        }
+                        try { ws.mergeCells(ref); } catch(e){}
+                    });
+                }
+
                 const buffer = await wb.xlsx.writeBuffer();
-                saveAs(new Blob([buffer]), "FOC_申請單.xlsx");
+                saveAs(new Blob([buffer]), "FOC_Application_Form.xlsx");
 
             } catch (error) {
-                alert("匯出 FOC 表單失敗：" + error.message);
+                alert(t('alertFail') + error.message);
                 console.error(error);
             }
         };
 
-        return { step, loading, errorMessage, searchQuery, hasBiochem, hasImmuno, progressWidth, currentTitle, filteredItems, filteredOtherItems, isSelected, isOtherSelected, toggleSelection, toggleOtherSelection, isAllSelected, toggleSelectAll, goNext, goBack, formatButtonText, themeColor, summaryGroups, groupedInsts, removeItem, loadDatabaseFromCloud, exportExcel, exportFOC, showHelp };
+        return { step, loading, errorMessage, searchQuery, hasBiochem, hasImmuno, progressWidth, currentTitle, filteredItems, filteredOtherItems, isSelected, isOtherSelected, toggleSelection, toggleOtherSelection, isAllSelected, toggleSelectAll, goNext, goBack, formatButtonText, themeColor, summaryGroups, groupedInsts, removeItem, loadDatabaseFromCloud, exportExcel, exportFOC, showHelp, lang, t, toggleLang };
     }
 }).mount('#app');
 </script>
