@@ -217,7 +217,7 @@
                 </div>
             </div>
 
-            <!-- 其他耗材選擇 (雙排資訊卡片) -->
+            <!-- 其他耗材選擇 -->
             <div v-else-if="step === 6" class="mt-4">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 auto-rows-fr">
                     <button v-for="item in filteredOtherItems" :key="item.id" @click="toggleOtherSelection(item)" 
@@ -346,11 +346,9 @@ createApp({
             return '0%';
         });
 
-        // 🌟 智慧字詞黏著引擎：專門處理儀器名稱的換行與不換行空白
         const formatButtonText = (name, currentStep) => {
             if (!name) return "";
             if (currentStep === 1) {
-                // 將 cobas pro c 703 轉換為 cobas pro<br>c&nbsp;703
                 return name.replace(/ (c|e) (\d{3})/ig, '<br>$1&nbsp;$2');
             }
             return name;
@@ -777,18 +775,32 @@ createApp({
                 let ws = wb.getWorksheet('工作表1') || wb.worksheets[0];
 
                 let itemCodeRowIdx = -1;
+                let itemCodeColIdx = 1;
+                let descColIdx = 2;
+
                 ws.eachRow((row, rowNum) => {
-                    const cellText = row.getCell(1).text ? String(row.getCell(1).text).toLowerCase() : '';
-                    if (cellText.includes('item code')) itemCodeRowIdx = rowNum;
+                    if (itemCodeRowIdx !== -1) return; 
+                    
+                    row.eachCell((cell, colNum) => {
+                        const cellText = cell.text ? String(cell.text).toLowerCase().replace(/\s+/g, '') : '';
+                        
+                        if (cellText.includes('materialcode') || cellText.includes('itemcode') || cellText.includes('material') || cellText.includes('貨號')) {
+                            itemCodeRowIdx = rowNum;
+                            itemCodeColIdx = colNum;
+                        }
+                        if (cellText.includes('description') || cellText.includes('品名') || cellText.includes('產品名稱') || cellText.includes('product')) {
+                            descColIdx = colNum;
+                        }
+                    });
                 });
 
-                if (itemCodeRowIdx === -1) throw new Error("找不到 'Item code' 標題列！");
+                if (itemCodeRowIdx === -1) throw new Error("找不到 'Material Code' 或 '貨號' 標題列！請確認表單格式。");
 
                 const startRow = itemCodeRowIdx + 1;
 
                 let preAllocatedRows = 0;
                 while (true) {
-                    const checkCell = ws.getCell(startRow + preAllocatedRows, 1);
+                    const checkCell = ws.getCell(startRow + preAllocatedRows, itemCodeColIdx);
                     if (checkCell && checkCell.border && Object.keys(checkCell.border).length > 0) {
                         preAllocatedRows++;
                     } else {
@@ -820,8 +832,8 @@ createApp({
 
                 uniqueRecords.forEach((item, index) => {
                     const targetRow = ws.getRow(startRow + index);
-                    targetRow.getCell(1).value = item["產品貨號"];
-                    targetRow.getCell(2).value = item["產品名稱"];
+                    targetRow.getCell(itemCodeColIdx).value = item["產品貨號"];
+                    targetRow.getCell(descColIdx).value = item["產品名稱"];
                 });
 
                 const buffer = await wb.xlsx.writeBuffer();
