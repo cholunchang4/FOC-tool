@@ -276,12 +276,10 @@
             </div>
 
             <div class="flex gap-3">
-                <!-- 🌟 加入漸層色彩的「一般總表」按鈕 -->
                 <button @click="exportExcel" class="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
                     <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     {{ t('exportGeneral') }}
                 </button>
-                <!-- 🌟 如果是英文版，則隱藏 FOC 產出按鈕 -->
                 <button v-if="lang === 'zh'" @click="exportFOC" class="px-8 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white font-extrabold rounded-xl shadow-lg shadow-purple-200 hover:shadow-purple-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     {{ t('exportFOC') }}
@@ -900,6 +898,33 @@ createApp({
             return { uniqueRecords, detailOutputValues };
         };
 
+        // 🌟 智慧翻譯攔截器 (攔截第二張表的所有內容，包含標題與特定儲存格中文字)
+        const translateContent = (text, currentLang) => {
+            if (currentLang === 'zh' || !text) return text;
+            let tStr = String(text);
+            
+            // 標題與常見關鍵字翻譯字典
+            const dict = {
+                "產品貨號": "Material Code", "ACN code": "ACN Code", "項目名稱": "Item Name",
+                "包裝數": "Pack Size", "機上試劑效期": "On-board Stability (Days)", "檢體量": "Sample Volume",
+                "項目單位": "Unit", "量測範圍": "Measuring Range", "校正液名稱": "Calibrator Name",
+                "校正液貨號": "Calibrator Code", "品管液名稱": "Control Name", "品管液貨號": "Control Code",
+                "全血應用": "Whole Blood App", "溶血液應用": "Hemolysate App", "溶血液": "Hemolysate",
+                "全血": "Whole Blood", "血清": "Serum", "血漿": "Plasma", "尿液": "Urine", "備註": "Remark"
+            };
+
+            // 1. 完全比對 (主要針對表頭)
+            if (dict[tStr]) return dict[tStr];
+            
+            // 2. 局部比對 (針對像 "全血應用：2.6" 這種混和字串)
+            for (const [zh, en] of Object.entries(dict)) {
+                if (tStr.includes(zh)) {
+                    tStr = tStr.replace(new RegExp(zh, 'g'), en);
+                }
+            }
+            return tStr;
+        };
+
         const exportExcel = async () => {
             const { uniqueRecords, detailOutputValues } = generateExportData();
             const wb = new ExcelJS.Workbook();
@@ -924,9 +949,22 @@ createApp({
 
             if (detailOutputValues.length > 0 && db.value.detailHeaders) {
                 const ws2Cols = [];
-                for(let i=1; i<db.value.detailHeaders.length; i++) ws2Cols.push({ header: db.value.detailHeaders[i] || '', key: `col${i}` });
+                for(let i=1; i<db.value.detailHeaders.length; i++) {
+                    // 翻譯第二張表 (項目細則) 的標題列
+                    const translatedHeader = translateContent(db.value.detailHeaders[i] || '', lang.value);
+                    ws2Cols.push({ header: translatedHeader, key: `col${i}` });
+                }
                 ws2.columns = ws2Cols;
-                detailOutputValues.forEach(vals => { const rowObj = {}; for(let i=1; i<vals.length; i++) rowObj[`col${i}`] = vals[i]; ws2.addRow(rowObj); });
+                
+                detailOutputValues.forEach(vals => { 
+                    const rowObj = {}; 
+                    for(let i=1; i<vals.length; i++) {
+                        // 翻譯第二張表 (項目細則) 內文的特定中文字
+                        rowObj[`col${i}`] = translateContent(vals[i], lang.value);
+                    } 
+                    ws2.addRow(rowObj); 
+                });
+
                 ws2.columns.forEach(column => {
                     let maxLength = 0;
                     column.eachCell({ includeEmpty: true }, cell => {
