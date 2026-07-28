@@ -825,7 +825,7 @@ createApp({
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
-        // 🌟 最終策略：刪除法 (預先在模板插入足夠多的空白列，填寫完後將用不到的刪除)
+        // 🌟 終極完美解法：隱藏與清空法 (代替有 Bug 的 spliceRows)
         const exportFOC = async () => {
             const { uniqueRecords } = generateExportData();
             if (uniqueRecords.length === 0) {
@@ -884,7 +884,7 @@ createApp({
 
                 // 3. 檢查預留是否足夠
                 if (requiredRows > preAllocatedRows) {
-                    alert(`⚠️ 預留列數不足！\n您選擇了 ${requiredRows} 個品項，但模板中只預留了 ${preAllocatedRows} 行空白列。\n請先開啟您的 Excel 模板，手動「插入」足夠的空白列後，再重新匯出！`);
+                    alert(`⚠️ 預留列數不足！\n您選擇了 ${requiredRows} 個品項，但模板中只預留了 ${preAllocatedRows} 行空白列。\n請先開啟您的 Excel 模板，手動「插入」足夠的空白列後，再重新產出！`);
                     return;
                 }
 
@@ -895,10 +895,18 @@ createApp({
                     targetRow.getCell(descColIdx).value = item["產品名稱"];
                 });
 
-                // 5. 將多出來、用不到的預留空白列「直接刪除」，讓簽名區往上貼齊
-                const rowsToDelete = preAllocatedRows - requiredRows;
-                if (rowsToDelete > 0) {
-                    ws.spliceRows(startRow + requiredRows, rowsToDelete);
+                // 5. 終極解法：將多出來、用不到的預留空白列「隱藏 (`hidden=true`)」並清空
+                // 這樣 Excel 在視覺上等同於「刪除」，但實體座標與合併儲存格絕對不會亂掉！
+                for (let r = startRow + requiredRows; r < footerRowIdx; r++) {
+                    const emptyRow = ws.getRow(r);
+                    emptyRow.hidden = true; // 將多餘的空白列隱藏，讓下方簽名區視覺上完全貼齊
+                    
+                    // 保險起見，清空裡面的內容與格式，避免任何殘留
+                    emptyRow.eachCell({ includeEmpty: true }, (cell) => {
+                        cell.value = null;
+                        cell.border = undefined;
+                        cell.fill = undefined;
+                    });
                 }
 
                 const buffer = await wb.xlsx.writeBuffer();
