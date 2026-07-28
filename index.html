@@ -825,7 +825,7 @@ createApp({
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
-        // 🌟 最終純淨版：用原生的 spliceRows 自動推擠合併儲存格，並修復當機 Bug！
+        // 🌟 最終策略：刪除法 (預先在模板插入足夠多的空白列，填寫完後將用不到的刪除)
         const exportFOC = async () => {
             const { uniqueRecords } = generateExportData();
             if (uniqueRecords.length === 0) {
@@ -847,58 +847,59 @@ createApp({
                 let itemCodeRowIdx = -1;
                 let itemCodeColIdx = 1;
                 let descColIdx = 2;
+                let footerRowIdx = -1;
 
+                // 1. 自動定位表頭與頁尾
                 ws.eachRow((row, rowNum) => {
-                    if (itemCodeRowIdx !== -1) return; 
+                    let rowText = "";
                     row.eachCell((cell, colNum) => {
                         const cellText = getCellText(cell).toLowerCase().replace(/\s+/g, '');
-                        if (cellText.includes('materialcode') || cellText.includes('itemcode') || cellText.includes('material') || cellText.includes('貨號')) {
-                            itemCodeRowIdx = rowNum;
-                            itemCodeColIdx = colNum;
-                        }
-                        if (cellText.includes('description') || cellText.includes('品名') || cellText.includes('產品名稱') || cellText.includes('product')) {
-                            descColIdx = colNum;
+                        rowText += cellText;
+                        if (itemCodeRowIdx === -1) {
+                            if (cellText.includes('materialcode') || cellText.includes('itemcode') || cellText.includes('material') || cellText.includes('貨號')) {
+                                itemCodeRowIdx = rowNum;
+                                itemCodeColIdx = colNum;
+                            }
+                            if (cellText.includes('description') || cellText.includes('品名') || cellText.includes('產品名稱') || cellText.includes('product')) {
+                                descColIdx = colNum;
+                            }
                         }
                     });
+
+                    // 尋找簽名區作為結尾
+                    if (itemCodeRowIdx !== -1 && rowNum > itemCodeRowIdx && footerRowIdx === -1) {
+                        if (rowText.includes('申請人') || rowText.includes('applicant') || rowText.includes('填寫說明')) {
+                            footerRowIdx = rowNum;
+                        }
+                    }
                 });
 
                 if (itemCodeRowIdx === -1) throw new Error("找不到標題列！請確認表單格式。");
+                if (footerRowIdx === -1) throw new Error("找不到底部簽名區(申請人/Applicant)！");
 
-                const startRow = itemCodeRowIdx + 1; // 14
-                const preAllocatedRows = 16; 
+                // 2. 計算模板已經預留了幾列空白格
+                const startRow = itemCodeRowIdx + 1;
+                const preAllocatedRows = footerRowIdx - startRow;
                 const requiredRows = uniqueRecords.length;
 
+                // 3. 檢查預留是否足夠
                 if (requiredRows > preAllocatedRows) {
-                    const rowsToAdd = requiredRows - preAllocatedRows;
-                    // 🌟 插入點：倒數第二行 (第28列)。保留第29列的粗底線往下推。
-                    const insertPos = startRow + preAllocatedRows - 2; 
-
-                    // 🌟 防當機機制：使用 Array.from 產生完全獨立的陣列，避免 ExcelJS 發生無窮迴圈
-                    const emptyData = Array.from({ length: rowsToAdd }, () => []);
-                    ws.spliceRows(insertPos, 0, ...emptyData);
-                    
-                    // 🌟 拷貝樣式：從第14列拷貝給每一行新產生的資料，保證所有的內框線、字體完全一致
-                    const templateRow = ws.getRow(startRow);
-                    for (let i = 0; i < rowsToAdd; i++) {
-                        const newRow = ws.getRow(insertPos + i);
-                        newRow.height = templateRow.height;
-                        for (let col = 1; col <= 10; col++) { 
-                            const targetCell = newRow.getCell(col);
-                            const sourceCell = templateRow.getCell(col);
-                            if (sourceCell.style) {
-                                // 深度複製避免參照問題
-                                targetCell.style = JSON.parse(JSON.stringify(sourceCell.style));
-                            }
-                        }
-                    }
+                    alert(`⚠️ 預留列數不足！\n您選擇了 ${requiredRows} 個品項，但模板中只預留了 ${preAllocatedRows} 行空白列。\n請先開啟您的 Excel 模板，手動「插入」足夠的空白列後，再重新匯出！`);
+                    return;
                 }
 
-                // 開始填入資料
+                // 4. 開始依序填入資料
                 uniqueRecords.forEach((item, index) => {
                     const targetRow = ws.getRow(startRow + index);
                     targetRow.getCell(itemCodeColIdx).value = item["產品貨號"];
                     targetRow.getCell(descColIdx).value = item["產品名稱"];
                 });
+
+                // 5. 將多出來、用不到的預留空白列「直接刪除」，讓簽名區往上貼齊
+                const rowsToDelete = preAllocatedRows - requiredRows;
+                if (rowsToDelete > 0) {
+                    ws.spliceRows(startRow + requiredRows, rowsToDelete);
+                }
 
                 const buffer = await wb.xlsx.writeBuffer();
                 saveAs(new Blob([buffer]), "FOC_申請單.xlsx");
