@@ -547,7 +547,7 @@ createApp({
         const groupedInsts = computed(() => {
             const exactG1 = ['ISE v1', 'ISE neo', 'cobas pro c 703', 'cobas pro c 503', 'cobas pro e 801'];
             const exactG2 = ['pure ISE', 'cobas pure c 303', 'cobas pure e 402'];
-            const exactG3 = ['cobas c 513']; // 🌟 專屬系統
+            const exactG3 = ['cobas c 513']; 
             
             const allLoaded = [...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse];
             const uniqueOther = [...new Set(allLoaded)].filter(i => !exactG1.includes(i) && !exactG2.includes(i) && !exactG3.includes(i));
@@ -663,9 +663,6 @@ createApp({
             else if (groupKey === 'other') selections.value.otherItems = selections.value.otherItems.filter(i => i.name !== itemText);
         };
 
-        // ==========================================
-        // 🌟 核心更新區塊：處理單元格內含多行或空格的自動拆行過濾
-        // ==========================================
         const generateExportData = () => {
             let records = [];
             
@@ -678,15 +675,12 @@ createApp({
             const detailOutputValues = [];
             const seenDetailItems = new Set();
 
-            // 定義一個通用函數，專門用來處理多行資料的自動拆解與配對
             const pushMultiLineRecords = (type, namesStr, codesStr) => {
                 if (!namesStr && !codesStr) return;
                 
-                // 依照換行符號切割字串為陣列，並去除前後空白
                 let names = String(namesStr || "").split(/\n/).map(s => s.trim()).filter(s => s);
                 let codes = String(codesStr || "").split(/\n/).map(s => s.trim()).filter(s => s);
                 
-                // 【保護機制】如果貨號欄位裡只用空白隔開(沒有換行)，做額外拆分
                 if (codes.length === 1 && codes[0].includes(" ")) {
                     codes = codes[0].split(/\s+/).filter(s => s);
                 }
@@ -698,7 +692,6 @@ createApp({
                     const name = names[i] || names[names.length - 1] || "";
                     const code = codes[i] || codes[codes.length - 1] || "";
                     
-                    // 【客製化過濾條件】依照您的範例要求，自動排除含有 "4 x 5 mL" 的小包裝
                     if (name.includes("4 x 5 mL")) {
                         continue; 
                     }
@@ -715,13 +708,11 @@ createApp({
                 const upperItem = item.toUpperCase().trim();
                 const detail = db.value.itemMap[upperItem];
                 if (detail) {
-                    // 使用新的拆解函數來推入陣列
                     pushMultiLineRecords("試劑", detail.C, detail.A);
                     pushMultiLineRecords("校正", detail.O, detail.N);
                     pushMultiLineRecords("品管", detail.W, detail.V);
                 }
                 
-                // 紀錄 detail 用於一般總表的第二頁
                 db.value.rawDetails.filter(r => r.itemName === upperItem).forEach(mr => { 
                     if (!seenDetailItems.has(mr)) { 
                         seenDetailItems.add(mr); 
@@ -738,8 +729,19 @@ createApp({
             const seenIds = new Set();
             const orderMap = { "儀器": 1, "試劑": 2, "校正": 3, "品管": 4, "其他": 5 };
             
+            // 🌟 最終過濾階段：徹底清洗掉 "Biorad" 與 "隨盒" 等關鍵字
             records.forEach(r => {
-                const num = r["產品貨號"];
+                const num = String(r["產品貨號"] || "").trim();
+                const name = String(r["產品名稱"] || "").trim();
+                
+                const lowerNum = num.toLowerCase();
+                const lowerName = name.toLowerCase();
+
+                // 若包含指定字眼，直接跳過不加入最終清單
+                if (lowerNum.includes("biorad") || lowerName.includes("biorad") || num.includes("隨盒") || name.includes("隨盒")) {
+                    return; 
+                }
+
                 if (num && num !== "" && !seenIds.has(num)) { 
                     seenIds.add(num); 
                     uniqueRecords.push(r); 
