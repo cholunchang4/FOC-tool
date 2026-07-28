@@ -201,7 +201,7 @@
                     </div>
                 </div>
 
-                <!-- 🌟 專屬系統區域 (cobas c 513) -->
+                <!-- 🌟 專屬系統區域 -->
                 <div class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
                     <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
                     <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
@@ -871,24 +871,22 @@ createApp({
 
                 if (requiredRows > preAllocatedRows) {
                     const rowsToAdd = requiredRows - preAllocatedRows;
-                    // 【關鍵修正】在表格倒數第二行 (第29列) 插入新列，完美避開下方合併儲存格的干擾
-                    const insertPos = startRow + preAllocatedRows - 1; 
+                    // 💡 終極解法：從上方 (第 15 列) 插入，讓包含底線的最後一列與下方的簽名欄安全往下推！
+                    const insertPos = startRow + 1; 
                     
                     const emptyData = Array(rowsToAdd).fill([]);
                     ws.spliceRows(insertPos, 0, ...emptyData);
                     
-                    // 從標準資料列 (第28列) 複製樣式給所有新長出來的行
-                    const templateRow = ws.getRow(insertPos - 1);
+                    const templateRow = ws.getRow(startRow);
                     for (let i = 0; i < rowsToAdd; i++) {
                         const newRow = ws.getRow(insertPos + i);
                         newRow.height = templateRow.height;
                         templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
                             const targetCell = newRow.getCell(colNumber);
-                            // 深度拷貝樣式，確保框線完全不流失
                             if (cell.style) {
-                                targetCell.style = JSON.parse(JSON.stringify(cell.style));
+                                targetCell.style = JSON.parse(JSON.stringify(cell.style)); 
                             }
-                            targetCell.value = null; // 清除隱藏殘留字元
+                            targetCell.value = null; 
                         });
                     }
                 }
