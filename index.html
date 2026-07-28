@@ -825,7 +825,7 @@ createApp({
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
-        // 🌟 終極修正版：完美保護頁首與頁尾的擴充演算法
+        // 🌟 終極外科手術級修正：徹底放棄有 Bug 的 spliceRows，改用精準手動平移！
         const exportFOC = async () => {
             const { uniqueRecords } = generateExportData();
             if (uniqueRecords.length === 0) {
@@ -870,10 +870,16 @@ createApp({
 
                 if (requiredRows > preAllocatedRows) {
                     const rowsToAdd = requiredRows - preAllocatedRows;
-                    // 🌟 防護網 1：定位在表格「最底部」的第 30 列，絕不切割原來的表格結構
+                    // 🌟 防護網 1：定位在表格「最底部」的第 30 列，絕不切割原來的內部表格
                     const insertPos = startRow + preAllocatedRows; 
-                    
-                    // 🌟 防護網 2：先讀取並「解除」所有的合併儲存格，防止 spliceRows 把它們刪掉
+
+                    // 尋找表單實際最後一列 (避免處理無意義的空白百萬列)
+                    let realLastRow = insertPos;
+                    ws.eachRow((row, rowNum) => {
+                        if (rowNum > realLastRow) realLastRow = rowNum;
+                    });
+
+                    // 🌟 防護網 2：先讀取並「解除」所有的合併儲存格，避免套件 Bug 破壞
                     let merges = [];
                     if (ws.model && ws.model.merges) {
                         merges = [...ws.model.merges];
@@ -888,35 +894,41 @@ createApp({
                         try { ws.unmergeCells(ref); } catch(e) {}
                     });
 
-                    // 🌟 防護網 3：記錄頁尾原本的高度
-                    const footerHeights = {};
-                    for (let r = insertPos; r <= ws.rowCount + 5; r++) {
-                        const row = ws.getRow(r);
-                        if (row.height) footerHeights[r] = row.height;
-                    }
-
-                    // 開始插入所需的空列數
-                    const emptyData = Array(rowsToAdd).fill([]);
-                    ws.spliceRows(insertPos, 0, ...emptyData);
-                    
-                    // 🌟 防護網 4：使用直接指派(Direct Assignment)複製樣式，避免遺失框線原型
-                    const templateRow = ws.getRow(insertPos - 1); // 以表格最後一行(第29列)為基準
-                    for (let i = 0; i < rowsToAdd; i++) {
-                        const newRow = ws.getRow(insertPos + i);
-                        newRow.height = templateRow.height;
-                        templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                            const targetCell = newRow.getCell(colNumber);
-                            targetCell.style = cell.style; // 直接繼承原生樣式物件，確保邊框不消失
-                            targetCell.value = null; 
+                    // 🌟 防護網 3：以手動平移代替 spliceRows，把頁尾簽名區完美下推
+                    for (let r = realLastRow; r >= insertPos; r--) {
+                        const srcRow = ws.getRow(r);
+                        const dstRow = ws.getRow(r + rowsToAdd);
+                        
+                        dstRow.height = srcRow.height;
+                        
+                        srcRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                            const dstCell = dstRow.getCell(colNum);
+                            dstCell.value = cell.value;
+                            if (cell.style) {
+                                dstCell.style = JSON.parse(JSON.stringify(cell.style));
+                            }
+                            
+                            // 清空來源儲存格
+                            cell.value = null;
+                            cell.style = {};
                         });
                     }
 
-                    // 復原頁尾高度
-                    for (const [r, h] of Object.entries(footerHeights)) {
-                        ws.getRow(parseInt(r) + rowsToAdd).height = h;
+                    // 🌟 防護網 4：空出來的新行，統一從內部標準行 (倒數第2行) 複製格式，保證內外框線不遺失
+                    const templateRow = ws.getRow(insertPos - 2); 
+                    for (let r = insertPos; r < insertPos + rowsToAdd; r++) {
+                        const gapRow = ws.getRow(r);
+                        gapRow.height = templateRow.height;
+                        templateRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                            const gapCell = gapRow.getCell(colNum);
+                            if (cell.style) {
+                                gapCell.style = JSON.parse(JSON.stringify(cell.style));
+                            }
+                            gapCell.value = null;
+                        });
                     }
 
-                    // 🌟 最終還原防護：重新把合併儲存格加上去（自動計算因插入而下移的座標）
+                    // 🌟 最終還原防護：重新把合併儲存格加上去（自動計算下推後的座標）
                     merges.forEach(ref => {
                         const match = ref.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
                         if (match) {
@@ -924,17 +936,21 @@ createApp({
                             startR = parseInt(startR);
                             endR = parseInt(endR);
                             
-                            // 只要合併儲存格在插入點下方，就把它往下推
                             if (startR >= insertPos) {
                                 startR += rowsToAdd;
                                 endR += rowsToAdd;
                             } else if (startR < insertPos && endR >= insertPos) {
-                                endR += rowsToAdd; // 跨越插入點的則拉長
+                                endR += rowsToAdd;
                             }
-                            
                             try { ws.mergeCells(`${startCol}${startR}:${endCol}${endR}`); } catch(e) {}
                         } else {
-                            try { ws.mergeCells(ref); } catch(e) {}
+                            const singleMatch = ref.match(/([A-Z]+)(\d+)/);
+                            if (singleMatch) {
+                                let [, col, r] = singleMatch;
+                                r = parseInt(r);
+                                if (r >= insertPos) r += rowsToAdd;
+                                try { ws.mergeCells(`${col}${r}`); } catch(e) {}
+                            }
                         }
                     });
                 }
