@@ -904,23 +904,33 @@ createApp({
                 const shiftUpCount = preAllocatedRows - requiredRows;
 
                 if (shiftUpCount > 0) {
+                    let actualLastRow = 0;
+                    ws.eachRow((row, rowNum) => {
+                        if (rowNum > actualLastRow) actualLastRow = rowNum;
+                    });
+
                     let originalMerges = [];
                     if (ws._merges) {
-                        for (const key in ws._merges) { originalMerges.push(key); }
+                        for (const key in ws._merges) { originalMerges.push(ws._merges[key].model ? ws._merges[key].model.ref : key); }
+                    } else if (ws.model && ws.model.merges) {
+                        originalMerges = [...ws.model.merges];
                     }
+                    originalMerges = [...new Set(originalMerges)];
+                    
+                    // 先解除所有合併
                     originalMerges.forEach(ref => {
                         try { ws.unmergeCells(ref); } catch(e) {}
                     });
 
-                    const lastRow = ws.rowCount;
-                    for (let r = footerRowIdx; r <= lastRow; r++) {
+                    // 手動上移儲存格
+                    for (let r = footerRowIdx; r <= actualLastRow; r++) {
                         const newR = r - shiftUpCount;
                         const srcRow = ws.getRow(r);
                         const dstRow = ws.getRow(newR);
                         
                         dstRow.height = srcRow.height;
                         
-                        for (let c = 1; c <= 20; c++) {
+                        for (let c = 1; c <= 30; c++) {
                             const srcCell = srcRow.getCell(c);
                             const dstCell = dstRow.getCell(c);
                             
@@ -933,17 +943,18 @@ createApp({
                         }
                     }
 
-                    for (let r = lastRow - shiftUpCount + 1; r <= lastRow; r++) {
+                    // 清空底部殘留區塊
+                    for (let r = actualLastRow - shiftUpCount + 1; r <= actualLastRow + 5; r++) {
                         const row = ws.getRow(r);
                         row.height = undefined;
-                        for (let c = 1; c <= 20; c++) {
+                        for (let c = 1; c <= 30; c++) {
                             const cell = row.getCell(c);
                             cell.value = null;
                             cell.style = {};
                         }
                     }
 
-                    // 5. 獨立步驟：算出新座標、徹底清空殘留字元、再強制合併
+                    // 5. 獨立執行重新合併
                     let newMergesToApply = [];
                     originalMerges.forEach(ref => {
                         const match = ref.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
@@ -960,7 +971,7 @@ createApp({
                                 endR -= shiftUpCount;
                                 newMergesToApply.push(`${startColStr}${startR}:${endColStr}${endR}`);
                             } else if (startR >= startRow + requiredRows && endR < footerRowIdx) {
-                                // 落於被刪除範圍內，丟棄
+                                // 落於被刪除的空白列範圍內，丟棄
                             } else {
                                 newMergesToApply.push(ref);
                             }
@@ -970,12 +981,12 @@ createApp({
                                 let [, colStr, r] = singleMatch;
                                 r = parseInt(r);
                                 if (r >= footerRowIdx) r -= shiftUpCount;
-                                // 單格不需合併
+                                // 單格不用加進去合併
                             }
                         }
                     });
 
-                    // 🌟 最終防護：強清儲存格內容後，再執行合併
+                    // 🌟 核心修復：強制只保留左上角的值，將其餘格子「純粹設為 null」！
                     newMergesToApply.forEach(ref => {
                         const match = ref.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
                         if (match) {
@@ -985,21 +996,20 @@ createApp({
                             const startColNum = colStrToNum(startColStr);
                             const endColNum = colStrToNum(endColStr);
                             
-                            // 將合併範圍內【除了左上角第一格以外】的所有格子，強制設為 Null
-                            // 避免 ExcelJS 發現裡面有字就拒絕合併
                             for (let r = startR; r <= endR; r++) {
                                 for (let c = startColNum; c <= endColNum; c++) {
                                     if (r !== startR || c !== startColNum) {
-                                        let cell = ws.getCell(r, c);
-                                        cell.value = null; // 強制清空
+                                        // 確保除了左上角以外，所有的值都被徹底淨空
+                                        ws.getCell(r, c).value = null; 
                                     }
                                 }
                             }
                         }
+                        
                         try { 
                             ws.mergeCells(ref); 
-                        } catch(e){ 
-                            console.warn("合併警告:", ref, e); 
+                        } catch(e) { 
+                            console.warn("合併跳過:", ref, e); 
                         }
                     });
                 }
