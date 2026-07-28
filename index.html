@@ -883,7 +883,7 @@ createApp({
                 if (itemCodeRowIdx === -1) throw new Error("找不到標題列！請確認表單格式。");
                 if (footerRowIdx === -1) throw new Error("找不到底部簽名區(申請人/Applicant)！");
 
-                // 2. 計算預留了幾列空白格
+                // 2. 計算模板已經預留了幾列空白格
                 const startRow = itemCodeRowIdx + 1;
                 const preAllocatedRows = footerRowIdx - startRow;
                 const requiredRows = uniqueRecords.length;
@@ -991,9 +991,7 @@ createApp({
                                 for (let c = startColNum; c <= endColNum; c++) {
                                     if (r !== startR || c !== startColNum) {
                                         let cell = ws.getCell(r, c);
-                                        cell.value = null;
-                                        // 強制抹除內部殘留的型別判定
-                                        cell.type = ExcelJS.ValueType.Null; 
+                                        cell.value = null; // 強制清空
                                     }
                                 }
                             }
