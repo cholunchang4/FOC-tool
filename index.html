@@ -276,11 +276,13 @@
             </div>
 
             <div class="flex gap-3">
-                <button @click="exportExcel" class="px-6 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center gap-2">
-                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <!-- 🌟 加入漸層色彩的「一般總表」按鈕 -->
+                <button @click="exportExcel" class="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     {{ t('exportGeneral') }}
                 </button>
-                <button @click="exportFOC" class="px-8 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white font-extrabold rounded-xl shadow-lg shadow-purple-200 hover:shadow-purple-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                <!-- 🌟 如果是英文版，則隱藏 FOC 產出按鈕 -->
+                <button v-if="lang === 'zh'" @click="exportFOC" class="px-8 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white font-extrabold rounded-xl shadow-lg shadow-purple-200 hover:shadow-purple-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     {{ t('exportFOC') }}
                 </button>
@@ -412,7 +414,7 @@ const i18n = {
         help2: "Sequentially select the required <strong>Instruments</strong> and corresponding <strong>Reagents</strong>.",
         help3: "Use the <strong>Quick Search</strong> or <strong>Select All</strong> functions to speed up your workflow.",
         help4: "Finally, you may add <strong>Other Consumables</strong> such as racks or baskets.",
-        help5: "Review your items on the 'Summary' page, then click <strong>Export FOC Form</strong> or General Summary.",
+        help5: "Review your items on the 'Summary' page, then click <strong>Export General Summary</strong>.",
         gotIt: "Got it",
         back: "Back",
         help: "Help",
@@ -471,7 +473,7 @@ const i18n = {
 
 createApp({
     setup() {
-        const lang = ref('zh'); // 語系狀態
+        const lang = ref('zh'); 
         const t = (key) => i18n[lang.value][key] || key;
         const tReplace = (key, req, pre) => t(key).replace('{req}', req).replace('{pre}', pre);
         
