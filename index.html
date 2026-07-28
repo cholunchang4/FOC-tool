@@ -900,13 +900,14 @@ createApp({
             return { uniqueRecords, detailOutputValues };
         };
 
-        // 🌟 智慧翻譯攔截器 (攔截第二張表的所有內容，包含標題與特定儲存格中文字)
+        // 🌟 智慧翻譯攔截器 (攔截第二張表的所有內容，大幅擴充字庫)
         const translateContent = (text, currentLang) => {
-            if (currentLang === 'zh' || text === null || text === undefined) return text;
+            if (currentLang === 'zh' || text === null || text === undefined || text === '') return text;
             let tStr = String(text);
             
-            // 標題與常見關鍵字翻譯字典 (依照字串長度排序避免部分取代錯誤)
+            // 標題與常見關鍵字翻譯字典 (最全面的 IVD 中英轉換庫)
             const dict = {
+                // Headers & Key Fields
                 "機上試劑效期": "On-board Stability (Days)",
                 "項目名稱": "Item Name",
                 "產品貨號": "Material Code",
@@ -925,6 +926,8 @@ createApp({
                 "備註": "Remark",
                 "貨號": "Code",
                 "名稱": "Name",
+
+                // Applications / Sample Types
                 "溶血液應用": "Hemolysate App",
                 "全血應用": "Whole Blood App",
                 "腦脊髓液應用": "CSF App",
@@ -941,14 +944,23 @@ createApp({
                 "上清液": "Supernatant",
                 "水溶液": "Aqueous",
                 "羊水": "Amniotic fluid",
+                "腹水": "Ascites",
+                "肋膜液": "Pleural fluid",
+                "滑膜液": "Synovial fluid",
+                "透析液": "Dialysate",
+                "唾液": "Saliva",
+                "檢體": "Sample",
+                "樣本": "Specimen",
+
+                // Time & Durations
                 "個月": " Months",
                 "小時": " Hours",
                 "分鐘": " Mins",
                 "天": " Days",
                 "週": " Weeks",
                 "年": " Years",
-                "次": " Tests",
-                "反應": " Reactions",
+
+                // Reagent Types & States
                 "緩衝液": "Buffer",
                 "清洗液": "Wash",
                 "稀釋液": "Diluent",
@@ -959,25 +971,71 @@ createApp({
                 "專用": "Dedicated",
                 "一般": "General",
                 "其他": "Other",
+                "凍乾": "Lyophilized",
+                "液態": "Liquid",
+                "純水": "Purified Water",
+                "去離子水": "Deionized Water",
+                "生理食鹽水": "Saline",
+                "空白": "Blank",
+                "水": "Water",
+
+                // Status, Conditions & Instructions
                 "不適用": "N/A",
                 "未提供": "N/A",
                 "未知": "Unknown",
+                "無須": "Not required",
+                "不需要": "Not needed",
+                "需要": "Required",
                 "請參閱": "Refer to ",
+                "詳見": "See details in ",
+                "參見": "See ",
+                "見備註": "See remarks",
                 "仿單": "Package Insert",
+                "說明書": "Instructions",
                 "手冊": "Manual",
                 "無": "None",
+                "建議": "Recommended",
+                "隨用": "Ready-to-use",
+                "避光": "Protect from light",
+                "開瓶後": "After opening",
+                "上機穩定性": "On-board Stability",
+                "上機": "On-board",
+                "穩定性": "Stability",
+                "批次": "Lot",
+                "原廠": "Original",
+                "室溫": "Room Temp",
+                "冷藏": "Refrigerated",
+                "冷凍": "Frozen",
+                "儲存": "Storage",
+
+                // Results & Metrics
                 "陰性": "Negative",
                 "陽性": "Positive",
                 "濃度": "Concentration",
+                "定量": "Quantitative",
+                "定性": "Qualitative",
+                "半定量": "Semi-quantitative",
+                "參考區間": "Reference range",
+                "測試": "Tests",
+                "次": " Tests",
+                "反應": " Reactions",
+                "套組": " Kit",
                 "高": "High",
                 "低": "Low",
                 "中": "Medium",
-                "大於": ">",
-                "小於": "<",
-                "大約": "Approx.",
-                "見備註": "See remarks",
-                "參見": "See ",
-                "建議": "Recommended",
+
+                // Conjunctions & Modifiers
+                "大於": " > ",
+                "小於": " < ",
+                "等於": " = ",
+                "大約": "Approx. ",
+                "至": " to ",
+                "或": " or ",
+                "及": " and ",
+                "與": " and ",
+                "和": " and ",
+
+                // Punctuations
                 "：": ": ",
                 "，": ", ",
                 "、": ", ",
@@ -995,6 +1053,9 @@ createApp({
                     tStr = tStr.split(k).join(dict[k]);
                 }
             }
+
+            // 整理因為合併可能產生的多餘空白
+            tStr = tStr.replace(/\s+/g, ' ').trim();
             return tStr;
         };
 
