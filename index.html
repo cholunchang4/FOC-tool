@@ -825,7 +825,15 @@ createApp({
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
-        // 🌟 終極完美解法：手動平移儲存格，模擬刪除儲存格並上方平移！
+        // 將英文字母轉換為數字的輔助函數 (例如 'A'->1, 'C'->3)
+        const colStrToNum = (str) => {
+            let num = 0;
+            for (let i = 0; i < str.length; i++) {
+                num = num * 26 + (str.charCodeAt(i) - 64);
+            }
+            return num;
+        };
+
         const exportFOC = async () => {
             const { uniqueRecords } = generateExportData();
             if (uniqueRecords.length === 0) {
@@ -855,7 +863,6 @@ createApp({
                     row.eachCell((cell, colNum) => {
                         const cellText = getCellText(cell).toLowerCase().replace(/\s+/g, '');
                         rowText += cellText;
-                        // 找表頭
                         if (itemCodeRowIdx === -1) {
                             if (cellText.includes('materialcode') || cellText.includes('itemcode') || cellText.includes('material') || cellText.includes('貨號')) {
                                 itemCodeRowIdx = rowNum;
@@ -867,7 +874,6 @@ createApp({
                         }
                     });
 
-                    // 尋找簽名區作為頁尾結尾
                     if (itemCodeRowIdx !== -1 && rowNum > itemCodeRowIdx && footerRowIdx === -1) {
                         if (rowText.includes('申請人') || rowText.includes('applicant') || rowText.includes('填寫說明')) {
                             footerRowIdx = rowNum;
@@ -883,52 +889,46 @@ createApp({
                 const preAllocatedRows = footerRowIdx - startRow;
                 const requiredRows = uniqueRecords.length;
 
-                // 3. 檢查預留是否足夠
                 if (requiredRows > preAllocatedRows) {
                     alert(`⚠️ 預留列數不足！\n您選擇了 ${requiredRows} 個品項，但模板中只預留了 ${preAllocatedRows} 行空白列。\n請先開啟您的 Excel 模板，手動「插入」足夠的空白列後，再重新產出！`);
                     return;
                 }
 
-                // 4. 開始依序填入選擇的資料 (這段完全不會碰觸原本的框線設定)
+                // 3. 填入資料 (完全不動框線與樣式)
                 uniqueRecords.forEach((item, index) => {
                     const targetRow = ws.getRow(startRow + index);
                     targetRow.getCell(itemCodeColIdx).value = item["產品貨號"];
                     targetRow.getCell(descColIdx).value = item["產品名稱"];
                 });
 
-                // 5. 將剩餘的空白列「手動上移」(模擬刪除儲存格)
+                // 4. 將多出來的空白列透過「手動上移」的方式吃掉，確保所有底線與合併儲存格完美保留
                 const shiftUpCount = preAllocatedRows - requiredRows;
 
                 if (shiftUpCount > 0) {
-                    // 5a. 獲取並移除所有合併儲存格 (以免平移時出錯)
+                    // 備份並解除所有的合併儲存格
                     let originalMerges = [];
                     if (ws._merges) {
-                        for (const key in ws._merges) {
-                            originalMerges.push(key);
-                        }
+                        for (const key in ws._merges) { originalMerges.push(key); }
                     }
                     originalMerges.forEach(ref => {
                         try { ws.unmergeCells(ref); } catch(e) {}
                     });
 
-                    // 5b. 將頁尾及下方的內容一格一格「手動往上搬移」
+                    // 將頁尾區域手動往上平移
                     const lastRow = ws.rowCount;
                     for (let r = footerRowIdx; r <= lastRow; r++) {
                         const newR = r - shiftUpCount;
                         const srcRow = ws.getRow(r);
                         const dstRow = ws.getRow(newR);
                         
-                        // 複製列高
                         dstRow.height = srcRow.height;
                         
-                        // 複製每個儲存格的內容與格式
                         for (let c = 1; c <= 20; c++) {
                             const srcCell = srcRow.getCell(c);
                             const dstCell = dstRow.getCell(c);
                             
                             dstCell.value = srcCell.value;
                             if (srcCell.style && Object.keys(srcCell.style).length > 0) {
-                                // 深度複製樣式，確保內外框線、字體等完全獨立拷貝
                                 dstCell.style = JSON.parse(JSON.stringify(srcCell.style));
                             } else {
                                 dstCell.style = {};
@@ -936,7 +936,7 @@ createApp({
                         }
                     }
 
-                    // 5c. 清空底部因為平移而留下的舊殘留儲存格
+                    // 清空因為平移而留在底部的舊儲存格
                     for (let r = lastRow - shiftUpCount + 1; r <= lastRow; r++) {
                         const row = ws.getRow(r);
                         row.height = undefined;
@@ -947,37 +947,46 @@ createApp({
                         }
                     }
 
-                    // 5d. 重新計算並套用合併儲存格 (自動修正被往上推的座標)
+                    // 重新掛載合併儲存格 (加入強制清除防護，確保合併 100% 成功不複製文字)
                     originalMerges.forEach(ref => {
                         const match = ref.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
                         if (match) {
-                            let [, startCol, startR, endCol, endR] = match;
+                            let [, startColStr, startR, endColStr, endR] = match;
                             startR = parseInt(startR);
                             endR = parseInt(endR);
                             
                             if (startR >= footerRowIdx) {
-                                // 如果合併儲存格在簽名區，直接往上推移
                                 startR -= shiftUpCount;
                                 endR -= shiftUpCount;
-                                try { ws.mergeCells(`${startCol}${startR}:${endCol}${endR}`); } catch(e){}
+                                
+                                // 【核心修復】清除合併範圍內除了「左上角第一格」以外的內容
+                                // 這樣才不會因為平移產生的複製文字，導致 ExcelJS 合併失敗！
+                                const startColNum = colStrToNum(startColStr);
+                                const endColNum = colStrToNum(endColStr);
+                                for (let r = startR; r <= endR; r++) {
+                                    for (let c = startColNum; c <= endColNum; c++) {
+                                        if (r !== startR || c !== startColNum) {
+                                            ws.getCell(r, c).value = null; // 強制清空
+                                        }
+                                    }
+                                }
+                                try { ws.mergeCells(`${startColStr}${startR}:${endColStr}${endR}`); } catch(e){}
                             } else if (startR < footerRowIdx && endR >= footerRowIdx) {
-                                // 跨越區域防護 (極少見)
                                 endR -= shiftUpCount;
-                                try { ws.mergeCells(`${startCol}${startR}:${endCol}${endR}`); } catch(e){}
+                                try { ws.mergeCells(`${startColStr}${startR}:${endColStr}${endR}`); } catch(e){}
                             } else if (startR >= startRow + requiredRows && endR < footerRowIdx) {
-                                // 落於被刪除的空白列範圍內 -> 丟棄不合併
+                                // 落於被刪除的空白列範圍內，丟棄
                             } else {
-                                // 在表頭或填寫區 -> 保持原狀合併
                                 try { ws.mergeCells(ref); } catch(e){}
                             }
                         } else {
-                            // 單一儲存格的參照，直接平移補回
+                            // 單一格參照
                             const singleMatch = ref.match(/([A-Z]+)(\d+)/);
                             if (singleMatch) {
-                                let [, col, r] = singleMatch;
+                                let [, colStr, r] = singleMatch;
                                 r = parseInt(r);
                                 if (r >= footerRowIdx) r -= shiftUpCount;
-                                try { ws.mergeCells(`${col}${r}`); } catch(e){}
+                                try { ws.mergeCells(`${colStr}${r}`); } catch(e){}
                             }
                         }
                     });
