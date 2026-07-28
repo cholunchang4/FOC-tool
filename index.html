@@ -825,7 +825,6 @@ createApp({
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
-        // 將英文字母轉換為數字的輔助函數 (例如 'A'->1, 'C'->3)
         const colStrToNum = (str) => {
             let num = 0;
             for (let i = 0; i < str.length; i++) {
@@ -884,7 +883,7 @@ createApp({
                 if (itemCodeRowIdx === -1) throw new Error("找不到標題列！請確認表單格式。");
                 if (footerRowIdx === -1) throw new Error("找不到底部簽名區(申請人/Applicant)！");
 
-                // 2. 計算模板已經預留了幾列空白格
+                // 2. 計算預留了幾列空白格
                 const startRow = itemCodeRowIdx + 1;
                 const preAllocatedRows = footerRowIdx - startRow;
                 const requiredRows = uniqueRecords.length;
@@ -894,18 +893,17 @@ createApp({
                     return;
                 }
 
-                // 3. 填入資料 (完全不動框線與樣式)
+                // 3. 填入資料
                 uniqueRecords.forEach((item, index) => {
                     const targetRow = ws.getRow(startRow + index);
                     targetRow.getCell(itemCodeColIdx).value = item["產品貨號"];
                     targetRow.getCell(descColIdx).value = item["產品名稱"];
                 });
 
-                // 4. 將多出來的空白列透過「手動上移」的方式吃掉，確保所有底線與合併儲存格完美保留
+                // 4. 將多出來的空白列透過「手動上移」吃掉
                 const shiftUpCount = preAllocatedRows - requiredRows;
 
                 if (shiftUpCount > 0) {
-                    // 備份並解除所有的合併儲存格
                     let originalMerges = [];
                     if (ws._merges) {
                         for (const key in ws._merges) { originalMerges.push(key); }
@@ -914,7 +912,6 @@ createApp({
                         try { ws.unmergeCells(ref); } catch(e) {}
                     });
 
-                    // 將頁尾區域手動往上平移
                     const lastRow = ws.rowCount;
                     for (let r = footerRowIdx; r <= lastRow; r++) {
                         const newR = r - shiftUpCount;
@@ -936,7 +933,6 @@ createApp({
                         }
                     }
 
-                    // 清空因為平移而留在底部的舊儲存格
                     for (let r = lastRow - shiftUpCount + 1; r <= lastRow; r++) {
                         const row = ws.getRow(r);
                         row.height = undefined;
@@ -947,7 +943,8 @@ createApp({
                         }
                     }
 
-                    // 重新掛載合併儲存格 (加入強制清除防護，確保合併 100% 成功不複製文字)
+                    // 5. 獨立步驟：算出新座標、徹底清空殘留字元、再強制合併
+                    let newMergesToApply = [];
                     originalMerges.forEach(ref => {
                         const match = ref.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
                         if (match) {
@@ -958,36 +955,53 @@ createApp({
                             if (startR >= footerRowIdx) {
                                 startR -= shiftUpCount;
                                 endR -= shiftUpCount;
-                                
-                                // 【核心修復】清除合併範圍內除了「左上角第一格」以外的內容
-                                // 這樣才不會因為平移產生的複製文字，導致 ExcelJS 合併失敗！
-                                const startColNum = colStrToNum(startColStr);
-                                const endColNum = colStrToNum(endColStr);
-                                for (let r = startR; r <= endR; r++) {
-                                    for (let c = startColNum; c <= endColNum; c++) {
-                                        if (r !== startR || c !== startColNum) {
-                                            ws.getCell(r, c).value = null; // 強制清空
-                                        }
-                                    }
-                                }
-                                try { ws.mergeCells(`${startColStr}${startR}:${endColStr}${endR}`); } catch(e){}
+                                newMergesToApply.push(`${startColStr}${startR}:${endColStr}${endR}`);
                             } else if (startR < footerRowIdx && endR >= footerRowIdx) {
                                 endR -= shiftUpCount;
-                                try { ws.mergeCells(`${startColStr}${startR}:${endColStr}${endR}`); } catch(e){}
+                                newMergesToApply.push(`${startColStr}${startR}:${endColStr}${endR}`);
                             } else if (startR >= startRow + requiredRows && endR < footerRowIdx) {
-                                // 落於被刪除的空白列範圍內，丟棄
+                                // 落於被刪除範圍內，丟棄
                             } else {
-                                try { ws.mergeCells(ref); } catch(e){}
+                                newMergesToApply.push(ref);
                             }
                         } else {
-                            // 單一格參照
                             const singleMatch = ref.match(/([A-Z]+)(\d+)/);
                             if (singleMatch) {
                                 let [, colStr, r] = singleMatch;
                                 r = parseInt(r);
                                 if (r >= footerRowIdx) r -= shiftUpCount;
-                                try { ws.mergeCells(`${colStr}${r}`); } catch(e){}
+                                // 單格不需合併
                             }
+                        }
+                    });
+
+                    // 🌟 最終防護：強清儲存格內容後，再執行合併
+                    newMergesToApply.forEach(ref => {
+                        const match = ref.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+                        if (match) {
+                            let [, startColStr, startR, endColStr, endR] = match;
+                            startR = parseInt(startR);
+                            endR = parseInt(endR);
+                            const startColNum = colStrToNum(startColStr);
+                            const endColNum = colStrToNum(endColStr);
+                            
+                            // 將合併範圍內【除了左上角第一格以外】的所有格子，強制設為 Null
+                            // 避免 ExcelJS 發現裡面有字就拒絕合併
+                            for (let r = startR; r <= endR; r++) {
+                                for (let c = startColNum; c <= endColNum; c++) {
+                                    if (r !== startR || c !== startColNum) {
+                                        let cell = ws.getCell(r, c);
+                                        cell.value = null;
+                                        // 強制抹除內部殘留的型別判定
+                                        cell.type = ExcelJS.ValueType.Null; 
+                                    }
+                                }
+                            }
+                        }
+                        try { 
+                            ws.mergeCells(ref); 
+                        } catch(e){ 
+                            console.warn("合併警告:", ref, e); 
                         }
                     });
                 }
