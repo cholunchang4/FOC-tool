@@ -201,7 +201,7 @@
                     </div>
                 </div>
 
-                <!-- 🌟 新增的專用系統區域 (cobas c 513) -->
+                <!-- 🌟 專屬系統區域 (cobas c 513) -->
                 <div class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
                     <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
                     <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
@@ -344,7 +344,6 @@ createApp({
             otherItems: [] 
         });
 
-        // 🌟 排除 c 513 觸發流程，讓它能直接跳過試劑選擇
         const hasBiochem = computed(() => selections.value.instruments.some(i => i !== 'cobas c 513' && db.value.instBiochem.includes(i)));
         const hasImmuno = computed(() => selections.value.instruments.some(i => i !== 'cobas c 513' && db.value.instImmuno.includes(i)));
 
@@ -641,7 +640,7 @@ createApp({
             if(step.value === 1) { 
                 if(hasBiochem.value) step.value = 2; 
                 else if(hasImmuno.value) step.value = 4; 
-                else step.value = 6; // 如果只選了 c 513 或其他無生化免疫的，直接跳耗材
+                else step.value = 6; 
             } 
             else if(step.value === 2 || step.value === 3) { if(hasImmuno.value) step.value = 4; else step.value = 6; }
             else if(step.value === 4 || step.value === 5) { step.value = 6; }
@@ -664,6 +663,9 @@ createApp({
             else if (groupKey === 'other') selections.value.otherItems = selections.value.otherItems.filter(i => i.name !== itemText);
         };
 
+        // ==========================================
+        // 🌟 核心更新區塊：處理單元格內含多行或空格的自動拆行過濾
+        // ==========================================
         const generateExportData = () => {
             let records = [];
             
@@ -676,15 +678,56 @@ createApp({
             const detailOutputValues = [];
             const seenDetailItems = new Set();
 
+            // 定義一個通用函數，專門用來處理多行資料的自動拆解與配對
+            const pushMultiLineRecords = (type, namesStr, codesStr) => {
+                if (!namesStr && !codesStr) return;
+                
+                // 依照換行符號切割字串為陣列，並去除前後空白
+                let names = String(namesStr || "").split(/\n/).map(s => s.trim()).filter(s => s);
+                let codes = String(codesStr || "").split(/\n/).map(s => s.trim()).filter(s => s);
+                
+                // 【保護機制】如果貨號欄位裡只用空白隔開(沒有換行)，做額外拆分
+                if (codes.length === 1 && codes[0].includes(" ")) {
+                    codes = codes[0].split(/\s+/).filter(s => s);
+                }
+
+                const maxLen = Math.max(names.length, codes.length);
+                if (maxLen === 0) return;
+                
+                for (let i = 0; i < maxLen; i++) {
+                    const name = names[i] || names[names.length - 1] || "";
+                    const code = codes[i] || codes[codes.length - 1] || "";
+                    
+                    // 【客製化過濾條件】依照您的範例要求，自動排除含有 "4 x 5 mL" 的小包裝
+                    if (name.includes("4 x 5 mL")) {
+                        continue; 
+                    }
+                    
+                    records.push({
+                        "項目種類": type,
+                        "產品名稱": name,
+                        "產品貨號": code
+                    });
+                }
+            };
+
             allSelectedItems.forEach(item => {
                 const upperItem = item.toUpperCase().trim();
                 const detail = db.value.itemMap[upperItem];
                 if (detail) {
-                    if(detail.C || detail.A) records.push({ "項目種類": "試劑", "產品名稱": detail.C, "產品貨號": detail.A });
-                    if(detail.O || detail.N) records.push({ "項目種類": "校正", "產品名稱": detail.O, "產品貨號": detail.N });
-                    if(detail.W || detail.V) records.push({ "項目種類": "品管", "產品名稱": detail.W, "產品貨號": detail.V });
+                    // 使用新的拆解函數來推入陣列
+                    pushMultiLineRecords("試劑", detail.C, detail.A);
+                    pushMultiLineRecords("校正", detail.O, detail.N);
+                    pushMultiLineRecords("品管", detail.W, detail.V);
                 }
-                db.value.rawDetails.filter(r => r.itemName === upperItem).forEach(mr => { if (!seenDetailItems.has(mr)) { seenDetailItems.add(mr); detailOutputValues.push(mr.values); } });
+                
+                // 紀錄 detail 用於一般總表的第二頁
+                db.value.rawDetails.filter(r => r.itemName === upperItem).forEach(mr => { 
+                    if (!seenDetailItems.has(mr)) { 
+                        seenDetailItems.add(mr); 
+                        detailOutputValues.push(mr.values); 
+                    } 
+                });
             });
 
             selections.value.otherItems.forEach(item => {
@@ -697,7 +740,10 @@ createApp({
             
             records.forEach(r => {
                 const num = r["產品貨號"];
-                if (num && num !== "" && !seenIds.has(num)) { seenIds.add(num); uniqueRecords.push(r); }
+                if (num && num !== "" && !seenIds.has(num)) { 
+                    seenIds.add(num); 
+                    uniqueRecords.push(r); 
+                }
             });
             uniqueRecords.sort((a, b) => orderMap[a["項目種類"]] - orderMap[b["項目種類"]]);
 
@@ -774,7 +820,6 @@ createApp({
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
-        // 🌟 完全對齊 VBA 擴充邏輯的版本
         const exportFOC = async () => {
             const { uniqueRecords } = generateExportData();
             if (uniqueRecords.length === 0) {
@@ -797,7 +842,6 @@ createApp({
                 let itemCodeColIdx = 1;
                 let descColIdx = 2;
 
-                // 智慧全表掃描找到標題位置
                 ws.eachRow((row, rowNum) => {
                     if (itemCodeRowIdx !== -1) return; 
                     
@@ -815,22 +859,18 @@ createApp({
 
                 if (itemCodeRowIdx === -1) throw new Error("找不到 'Material Code' 或 '貨號' 標題列！請確認表單格式。");
 
-                const startRow = itemCodeRowIdx + 1; // 從標題的下一行(第14列)開始填寫
+                const startRow = itemCodeRowIdx + 1; 
                 
-                // ==========================================
-                // 🌟 嚴格參照原本表單：16行空白列 (14~29列)，第30列開始推
                 const preAllocatedRows = 16; 
                 const requiredRows = uniqueRecords.length;
 
                 if (requiredRows > preAllocatedRows) {
                     const rowsToAdd = requiredRows - preAllocatedRows;
-                    const insertPos = startRow + preAllocatedRows; // 14 + 16 = 30 (從第30列開始推)
+                    const insertPos = startRow + preAllocatedRows; 
                     
-                    // 插入所需的空白列數
                     const emptyData = Array(rowsToAdd).fill([]);
                     ws.spliceRows(insertPos, 0, ...emptyData);
                     
-                    // 完美複製第 29 列 (即 insertPos - 1) 的框線格式給新插入的列
                     const templateRow = ws.getRow(insertPos - 1);
                     for (let i = 0; i < rowsToAdd; i++) {
                         const newRow = ws.getRow(insertPos + i);
@@ -840,9 +880,7 @@ createApp({
                         });
                     }
                 }
-                // ==========================================
 
-                // 開始填入資料
                 uniqueRecords.forEach((item, index) => {
                     const targetRow = ws.getRow(startRow + index);
                     targetRow.getCell(itemCodeColIdx).value = item["產品貨號"];
