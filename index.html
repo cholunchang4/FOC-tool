@@ -183,7 +183,6 @@
                         <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">🏢</div> 高通量系統 <span class="text-sm font-medium text-slate-400 font-normal">Pro Series</span>
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
-                        <!-- 🌟 儀器名稱套用 formatButtonText 濾鏡 -->
                         <button v-for="item in groupedInsts.group1" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             <span v-html="formatButtonText(item, step)"></span>
                         </button>
@@ -196,8 +195,20 @@
                         <div class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">🏥</div> 中通量系統 <span class="text-sm font-medium text-slate-400 font-normal">Pure Series</span>
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
-                        <!-- 🌟 儀器名稱套用 formatButtonText 濾鏡 -->
                         <button v-for="item in groupedInsts.group2" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
+                            <span v-html="formatButtonText(item, step)"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 🌟 新增的專用系統區域 (cobas c 513) -->
+                <div class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                    <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-3">
+                        <div class="p-2 bg-emerald-100 text-emerald-600 rounded-lg">🔬</div> 專屬系統 <span class="text-sm font-medium text-slate-400 font-normal">Dedicated Series</span>
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
+                        <button v-for="item in groupedInsts.group3" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             <span v-html="formatButtonText(item, step)"></span>
                         </button>
                     </div>
@@ -209,7 +220,6 @@
                         <div class="p-2 bg-slate-200 text-slate-600 rounded-lg">⚙️</div> 其他設備
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
-                        <!-- 🌟 儀器名稱套用 formatButtonText 濾鏡 -->
                         <button v-for="item in groupedInsts.other" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             <span v-html="formatButtonText(item, step)"></span>
                         </button>
@@ -326,7 +336,7 @@ createApp({
             instBiochem: [], instImmuno: [], instIse: [],
             biochemCommon: [], biochemRare: [], immunoCommon: [], immunoRare: [],
             otherItems: [], 
-            bufferMap: {}, itemMap: {}, rawDetails: [], detailHeaders: []    
+            bufferMap: {}, itemMap: {}, rawDetails: [], detailHeaders: []   
         });
 
         const selections = ref({
@@ -334,8 +344,9 @@ createApp({
             otherItems: [] 
         });
 
-        const hasBiochem = computed(() => selections.value.instruments.some(i => db.value.instBiochem.includes(i)));
-        const hasImmuno = computed(() => selections.value.instruments.some(i => db.value.instImmuno.includes(i)));
+        // 🌟 排除 c 513 觸發流程，讓它能直接跳過試劑選擇
+        const hasBiochem = computed(() => selections.value.instruments.some(i => i !== 'cobas c 513' && db.value.instBiochem.includes(i)));
+        const hasImmuno = computed(() => selections.value.instruments.some(i => i !== 'cobas c 513' && db.value.instImmuno.includes(i)));
 
         const progressWidth = computed(() => {
             if (step.value <= 1) return '0%';
@@ -354,7 +365,6 @@ createApp({
             return name;
         };
 
-        // 🌟 強化的提取文字函數 (防止讀到 null 崩潰)
         const getCellText = (cell) => {
             if (!cell || cell.value === null || cell.value === undefined) return "";
             let val = "";
@@ -538,13 +548,16 @@ createApp({
         const groupedInsts = computed(() => {
             const exactG1 = ['ISE v1', 'ISE neo', 'cobas pro c 703', 'cobas pro c 503', 'cobas pro e 801'];
             const exactG2 = ['pure ISE', 'cobas pure c 303', 'cobas pure e 402'];
+            const exactG3 = ['cobas c 513']; // 🌟 專屬系統
+            
             const allLoaded = [...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse];
-            const uniqueOther = [...new Set(allLoaded)].filter(i => !exactG1.includes(i) && !exactG2.includes(i));
-            return { group1: exactG1, group2: exactG2, other: uniqueOther };
+            const uniqueOther = [...new Set(allLoaded)].filter(i => !exactG1.includes(i) && !exactG2.includes(i) && !exactG3.includes(i));
+            
+            return { group1: exactG1, group2: exactG2, group3: exactG3, other: uniqueOther };
         });
 
         const filteredItems = computed(() => {
-            const list = step.value === 1 ? [...new Set([...groupedInsts.value.group1, ...groupedInsts.value.group2, ...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse])] : 
+            const list = step.value === 1 ? [...new Set([...groupedInsts.value.group1, ...groupedInsts.value.group2, ...groupedInsts.value.group3, ...db.value.instBiochem, ...db.value.instImmuno, ...db.value.instIse])] : 
                          step.value === 2 ? db.value.biochemCommon :
                          step.value === 3 ? db.value.biochemRare :
                          step.value === 4 ? db.value.immunoCommon : db.value.immunoRare;
@@ -625,7 +638,11 @@ createApp({
             if(step.value === 1 && selections.value.instruments.length === 0) return alert("請至少選擇一台設備儀器！");
             history.value.push(step.value);
             searchQuery.value = ""; 
-            if(step.value === 1) { if(hasBiochem.value) step.value = 2; else if(hasImmuno.value) step.value = 4; else step.value = 6; } 
+            if(step.value === 1) { 
+                if(hasBiochem.value) step.value = 2; 
+                else if(hasImmuno.value) step.value = 4; 
+                else step.value = 6; // 如果只選了 c 513 或其他無生化免疫的，直接跳耗材
+            } 
             else if(step.value === 2 || step.value === 3) { if(hasImmuno.value) step.value = 4; else step.value = 6; }
             else if(step.value === 4 || step.value === 5) { step.value = 6; }
             else if(step.value === 6) { step.value = 7; }
@@ -757,7 +774,7 @@ createApp({
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
-        // 🌟 強化版 FOC 產出：原生 Style 拷貝與智慧尋找
+        // 🌟 完全對齊 VBA 擴充邏輯的版本
         const exportFOC = async () => {
             const { uniqueRecords } = generateExportData();
             if (uniqueRecords.length === 0) {
@@ -768,7 +785,7 @@ createApp({
             try {
                 const templateName = 'RDTW_0013_A01_FOC Application Form FOC 申請單.xlsx';
                 const response = await fetch('./' + templateName + '?t=' + new Date().getTime());
-                if (!response.ok) throw new Error("找不到 " + templateName + "，請確認檔案已上傳至 GitHub。");
+                if (!response.ok) throw new Error("找不到 " + templateName + "，請確認檔案已正確上傳。");
                 
                 const arrayBuffer = await response.arrayBuffer();
                 const wb = new ExcelJS.Workbook();
@@ -780,14 +797,12 @@ createApp({
                 let itemCodeColIdx = 1;
                 let descColIdx = 2;
 
-                // 智慧全表掃描
+                // 智慧全表掃描找到標題位置
                 ws.eachRow((row, rowNum) => {
                     if (itemCodeRowIdx !== -1) return; 
                     
                     row.eachCell((cell, colNum) => {
-                        // 使用強化的 getCellText 確保絕對不會遇到 null 錯誤
                         const cellText = getCellText(cell).toLowerCase().replace(/\s+/g, '');
-                        
                         if (cellText.includes('materialcode') || cellText.includes('itemcode') || cellText.includes('material') || cellText.includes('貨號')) {
                             itemCodeRowIdx = rowNum;
                             itemCodeColIdx = colNum;
@@ -800,41 +815,34 @@ createApp({
 
                 if (itemCodeRowIdx === -1) throw new Error("找不到 'Material Code' 或 '貨號' 標題列！請確認表單格式。");
 
-                const startRow = itemCodeRowIdx + 1;
-
-                let preAllocatedRows = 0;
-                while (true) {
-                    const checkCell = ws.getCell(startRow + preAllocatedRows, itemCodeColIdx);
-                    if (checkCell && checkCell.border && Object.keys(checkCell.border).length > 0) {
-                        preAllocatedRows++;
-                    } else {
-                        break; 
-                    }
-                    if (preAllocatedRows > 100) break; 
-                }
-
-                if (preAllocatedRows === 0) preAllocatedRows = 8;
-
+                const startRow = itemCodeRowIdx + 1; // 從標題的下一行(第14列)開始填寫
+                
+                // ==========================================
+                // 🌟 嚴格參照原本表單：16行空白列 (14~29列)，第30列開始推
+                const preAllocatedRows = 16; 
                 const requiredRows = uniqueRecords.length;
-                const templateRow = ws.getRow(startRow); 
 
                 if (requiredRows > preAllocatedRows) {
                     const rowsToAdd = requiredRows - preAllocatedRows;
-                    const insertPos = startRow + preAllocatedRows; 
+                    const insertPos = startRow + preAllocatedRows; // 14 + 16 = 30 (從第30列開始推)
                     
+                    // 插入所需的空白列數
                     const emptyData = Array(rowsToAdd).fill([]);
                     ws.spliceRows(insertPos, 0, ...emptyData);
                     
+                    // 完美複製第 29 列 (即 insertPos - 1) 的框線格式給新插入的列
+                    const templateRow = ws.getRow(insertPos - 1);
                     for (let i = 0; i < rowsToAdd; i++) {
                         const newRow = ws.getRow(insertPos + i);
                         newRow.height = templateRow.height;
                         templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                            // 🌟 核心修復：使用原生的賦值來避免 Object.assign 破壞 prototype
                             newRow.getCell(colNumber).style = cell.style; 
                         });
                     }
                 }
+                // ==========================================
 
+                // 開始填入資料
                 uniqueRecords.forEach((item, index) => {
                     const targetRow = ws.getRow(startRow + index);
                     targetRow.getCell(itemCodeColIdx).value = item["產品貨號"];
