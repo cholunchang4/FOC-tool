@@ -217,7 +217,7 @@
                 </div>
             </div>
 
-            <!-- 其他耗材選擇 -->
+            <!-- 其他耗材選擇 (雙排資訊卡片) -->
             <div v-else-if="step === 6" class="mt-4">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 auto-rows-fr">
                     <button v-for="item in filteredOtherItems" :key="item.id" @click="toggleOtherSelection(item)" 
@@ -354,6 +354,7 @@ createApp({
             return name;
         };
 
+        // 🌟 強化的提取文字函數 (防止讀到 null 崩潰)
         const getCellText = (cell) => {
             if (!cell || cell.value === null || cell.value === undefined) return "";
             let val = "";
@@ -756,6 +757,7 @@ createApp({
             saveAs(new Blob([buffer]), "試劑申請總表.xlsx");
         };
 
+        // 🌟 強化版 FOC 產出：原生 Style 拷貝與智慧尋找
         const exportFOC = async () => {
             const { uniqueRecords } = generateExportData();
             if (uniqueRecords.length === 0) {
@@ -778,11 +780,13 @@ createApp({
                 let itemCodeColIdx = 1;
                 let descColIdx = 2;
 
+                // 智慧全表掃描
                 ws.eachRow((row, rowNum) => {
                     if (itemCodeRowIdx !== -1) return; 
                     
                     row.eachCell((cell, colNum) => {
-                        const cellText = cell.text ? String(cell.text).toLowerCase().replace(/\s+/g, '') : '';
+                        // 使用強化的 getCellText 確保絕對不會遇到 null 錯誤
+                        const cellText = getCellText(cell).toLowerCase().replace(/\s+/g, '');
                         
                         if (cellText.includes('materialcode') || cellText.includes('itemcode') || cellText.includes('material') || cellText.includes('貨號')) {
                             itemCodeRowIdx = rowNum;
@@ -825,7 +829,8 @@ createApp({
                         const newRow = ws.getRow(insertPos + i);
                         newRow.height = templateRow.height;
                         templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                            newRow.getCell(colNumber).style = Object.assign({}, cell.style);
+                            // 🌟 核心修復：使用原生的賦值來避免 Object.assign 破壞 prototype
+                            newRow.getCell(colNumber).style = cell.style; 
                         });
                     }
                 }
