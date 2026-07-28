@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IVD 試劑申請系統</title>
+    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Vue.js -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入 ExcelJS 與 FileSaver -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
@@ -19,6 +22,7 @@
 
 <div id="app" class="max-w-6xl mx-auto p-4 md:p-8 h-screen flex flex-col relative">
 
+    <!-- 🌟 使用說明彈窗 -->
     <div v-if="showHelp" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all">
             <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white flex justify-between items-center">
@@ -60,6 +64,7 @@
         </div>
     </div>
     
+    <!-- 視覺化進度條 -->
     <div v-if="step > 0" class="mb-8 relative z-0 hidden md:block px-10 pt-4">
         <div class="absolute left-10 right-10 top-[60%] -translate-y-1/2 h-1 bg-slate-200 rounded-full -z-10"></div>
         <div class="absolute left-10 top-[60%] -translate-y-1/2 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full -z-10 transition-all duration-500 ease-in-out" 
@@ -89,6 +94,7 @@
         </div>
     </div>
 
+    <!-- 頁面：全自動載入中 -->
     <div v-if="step === 0" class="flex flex-col items-center justify-center flex-grow bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl ring-1 ring-slate-900/5 p-10">
         <h1 class="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-600 mb-10 tracking-tight text-center">IVD 試劑申請系統</h1>
         
@@ -110,8 +116,10 @@
         </div>
     </div>
 
+    <!-- 共用版面：各步驟選擇 -->
     <div v-if="step > 0 && step < 7" class="flex flex-col flex-grow bg-white rounded-3xl shadow-2xl ring-1 ring-slate-900/5 overflow-hidden">
         
+        <!-- 頂部工具列 -->
         <div class="bg-slate-50/80 backdrop-blur-md p-5 border-b border-slate-200 flex flex-wrap gap-4 items-center justify-between sticky top-0 z-10">
             
             <div class="flex items-center gap-3">
@@ -125,6 +133,7 @@
                 </button>
             </div>
 
+            <!-- 搜尋與全選 -->
             <div v-if="step > 1" class="flex items-center gap-3 flex-grow max-w-lg">
                 <div class="relative flex-grow">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -143,6 +152,7 @@
             </button>
         </div>
 
+        <!-- 標題與特殊切換 -->
         <div class="px-8 py-5 flex flex-wrap gap-4 justify-between items-center bg-white border-b border-slate-50">
             <h2 class="text-3xl font-extrabold tracking-tight" :class="themeColor.text">{{ currentTitle }}</h2>
             
@@ -162,8 +172,10 @@
             </div>
         </div>
 
+        <!-- 按鈕區域 -->
         <div class="px-8 pb-8 pt-4 overflow-y-auto flex-grow bg-white">
             
+            <!-- 儀器選擇 -->
             <div v-if="step === 1 && !searchQuery" class="space-y-8">
                 <div class="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 relative overflow-hidden hover:shadow-md transition-shadow">
                     <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
@@ -171,6 +183,7 @@
                         <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">🏢</div> 高通量系統 <span class="text-sm font-medium text-slate-400 font-normal">Pro Series</span>
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
+                        <!-- 🌟 儀器名稱套用 formatButtonText 濾鏡 -->
                         <button v-for="item in groupedInsts.group1" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             <span v-html="formatButtonText(item, step)"></span>
                         </button>
@@ -183,6 +196,7 @@
                         <div class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">🏥</div> 中通量系統 <span class="text-sm font-medium text-slate-400 font-normal">Pure Series</span>
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
+                        <!-- 🌟 儀器名稱套用 formatButtonText 濾鏡 -->
                         <button v-for="item in groupedInsts.group2" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             <span v-html="formatButtonText(item, step)"></span>
                         </button>
@@ -195,6 +209,7 @@
                         <div class="p-2 bg-slate-200 text-slate-600 rounded-lg">⚙️</div> 其他設備
                     </h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
+                        <!-- 🌟 儀器名稱套用 formatButtonText 濾鏡 -->
                         <button v-for="item in groupedInsts.other" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
                             <span v-html="formatButtonText(item, step)"></span>
                         </button>
@@ -202,11 +217,12 @@
                 </div>
             </div>
 
+            <!-- 其他耗材選擇 (雙排資訊卡片) -->
             <div v-else-if="step === 6" class="mt-4">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 auto-rows-fr">
                     <button v-for="item in filteredOtherItems" :key="item.id" @click="toggleOtherSelection(item)" 
                             :class="[isOtherSelected(item) ? themeColor.selected : themeColor.unselected, '!items-start !text-left p-4 !min-h-[4rem]']">
-                        <span class="font-extrabold text-lg block w-full break-words">{{ item.name }}</span>
+                        <span class="font-extrabold text-lg mb-1 block w-full break-words">{{ item.name }}</span>
                         <span class="text-sm font-normal opacity-80 block w-full break-words mt-1 leading-snug" v-if="item.desc">{{ item.desc }}</span>
                     </button>
                 </div>
@@ -216,6 +232,7 @@
                 </div>
             </div>
 
+            <!-- 一般試劑列表 -->
             <div v-else class="mt-4">
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-fr">
                     <button v-for="item in filteredItems" :key="item" @click="toggleSelection(item)" :class="[isSelected(item) ? themeColor.selected : themeColor.unselected]">
@@ -230,6 +247,7 @@
         </div>
     </div>
 
+    <!-- 頁面：總表確認與匯出 -->
     <div v-if="step === 7" class="flex flex-col flex-grow bg-white rounded-3xl shadow-2xl ring-1 ring-slate-900/5 overflow-hidden">
         <div class="bg-slate-50/80 backdrop-blur-md p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 z-10 flex-wrap gap-4">
             
@@ -279,6 +297,7 @@
         </div>
     </div>
 
+    <!-- 🌟 底部版權、警語宣告區與開發者署名 -->
     <div class="mt-6 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-red-50 to-white p-4 md:px-6 rounded-2xl border-l-4 border-red-500 shadow-sm text-slate-600 text-sm font-medium">
         <div class="flex items-start gap-3">
             <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -747,14 +766,15 @@ createApp({
             }
 
             try {
-                const response = await fetch('./FOC template.xlsx?t=' + new Date().getTime());
-                if (!response.ok) throw new Error("找不到 FOC template.xlsx，請確認檔案已上傳至 GitHub。");
+                const templateName = 'RDTW_0013_A01_FOC Application Form FOC 申請單.xlsx';
+                const response = await fetch('./' + templateName + '?t=' + new Date().getTime());
+                if (!response.ok) throw new Error("找不到 " + templateName + "，請確認檔案已上傳至 GitHub。");
                 
                 const arrayBuffer = await response.arrayBuffer();
                 const wb = new ExcelJS.Workbook();
                 await wb.xlsx.load(arrayBuffer);
 
-                let ws = wb.worksheets.find(s => s.name.toLowerCase().includes('foc application')) || wb.worksheets[0];
+                let ws = wb.getWorksheet('工作表1') || wb.worksheets[0];
 
                 let itemCodeRowIdx = -1;
                 ws.eachRow((row, rowNum) => {
@@ -805,7 +825,7 @@ createApp({
                 });
 
                 const buffer = await wb.xlsx.writeBuffer();
-                saveAs(new Blob([buffer]), "FOC_Application_Form.xlsx");
+                saveAs(new Blob([buffer]), "FOC_申請單.xlsx");
 
             } catch (error) {
                 alert("匯出 FOC 表單失敗：" + error.message);
