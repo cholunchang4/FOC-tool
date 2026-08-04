@@ -276,12 +276,10 @@
             </div>
 
             <div class="flex gap-3">
-                <!-- 🌟 加入漸層色彩的「一般總表」按鈕 -->
                 <button @click="exportExcel" class="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
                     <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     {{ t('exportGeneral') }}
                 </button>
-                <!-- 🌟 如果是英文版，則隱藏 FOC 產出按鈕 -->
                 <button v-if="lang === 'zh'" @click="exportFOC" class="px-8 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white font-extrabold rounded-xl shadow-lg shadow-purple-200 hover:shadow-purple-300 transition-all hover:-translate-y-0.5 flex items-center gap-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     {{ t('exportFOC') }}
@@ -381,10 +379,8 @@ const i18n = {
         devBy: "Designed & Developed by",
         alertNoInst: "請至少選擇一台設備儀器！",
         alertNoItem: "目前沒有選擇任何項目，無法產出表單！",
-        alertSpace: "⚠️ 預留列數不足！\n您選擇了 {req} 個品項，但模板中只預留了 {pre} 行空白列。\n請先開啟您的 Excel 模板，手動「插入」足夠的空白列後，再重新產出！",
         alertFail: "匯出失敗：",
         errNoHeader: "找不到標題列！請確認表單格式。",
-        errNoFooter: "找不到底部簽名區(申請人/Applicant)！",
         disclaimer: "⚠️ 本系統及產出資料僅供羅氏 (Roche) 內部專業人員使用，屬機密資訊，嚴禁外流或未經授權之分享。",
         colType: "項目種類",
         colName: "產品名稱",
@@ -451,10 +447,8 @@ const i18n = {
         devBy: "Designed & Developed by",
         alertNoInst: "Please select at least one instrument!",
         alertNoItem: "No items selected. Cannot export form!",
-        alertSpace: "⚠️ Insufficient reserved rows!\nYou selected {req} items, but the template only has {pre} reserved blank rows.\nPlease open the Excel template, 'Insert' enough blank rows manually, and try again!",
         alertFail: "Export failed: ",
         errNoHeader: "Header row not found! Please check template format.",
-        errNoFooter: "Footer signature area (Applicant) not found!",
         disclaimer: "⚠️ This system & data are for internal Roche professional use only. Unauthorized distribution strictly prohibited.",
         colType: "Item Type",
         colName: "Product Name",
@@ -475,7 +469,6 @@ createApp({
     setup() {
         const lang = ref('zh'); 
         const t = (key) => i18n[lang.value][key] || key;
-        const tReplace = (key, req, pre) => t(key).replace('{req}', req).replace('{pre}', pre);
         
         const toggleLang = () => { lang.value = lang.value === 'zh' ? 'en' : 'zh'; };
 
@@ -900,14 +893,11 @@ createApp({
             return { uniqueRecords, detailOutputValues };
         };
 
-        // 🌟 智慧翻譯攔截器 (攔截第二張表的所有內容，大幅擴充字庫)
         const translateContent = (text, currentLang) => {
             if (currentLang === 'zh' || text === null || text === undefined || text === '') return text;
             let tStr = String(text);
             
-            // 標題與常見關鍵字翻譯字典 (最全面的 IVD 中英轉換庫)
             const dict = {
-                // Headers & Key Fields
                 "機上試劑效期": "On-board Stability (Days)",
                 "項目名稱": "Item Name",
                 "產品貨號": "Material Code",
@@ -926,8 +916,6 @@ createApp({
                 "備註": "Remark",
                 "貨號": "Code",
                 "名稱": "Name",
-
-                // Applications / Sample Types
                 "溶血液應用": "Hemolysate App",
                 "全血應用": "Whole Blood App",
                 "腦脊髓液應用": "CSF App",
@@ -951,16 +939,12 @@ createApp({
                 "唾液": "Saliva",
                 "檢體": "Sample",
                 "樣本": "Specimen",
-
-                // Time & Durations
                 "個月": " Months",
                 "小時": " Hours",
                 "分鐘": " Mins",
                 "天": " Days",
                 "週": " Weeks",
                 "年": " Years",
-
-                // Reagent Types & States
                 "緩衝液": "Buffer",
                 "清洗液": "Wash",
                 "稀釋液": "Diluent",
@@ -978,8 +962,6 @@ createApp({
                 "生理食鹽水": "Saline",
                 "空白": "Blank",
                 "水": "Water",
-
-                // Status, Conditions & Instructions
                 "不適用": "N/A",
                 "未提供": "N/A",
                 "未知": "Unknown",
@@ -1007,8 +989,6 @@ createApp({
                 "冷藏": "Refrigerated",
                 "冷凍": "Frozen",
                 "儲存": "Storage",
-
-                // Results & Metrics
                 "陰性": "Negative",
                 "陽性": "Positive",
                 "濃度": "Concentration",
@@ -1023,8 +1003,6 @@ createApp({
                 "高": "High",
                 "低": "Low",
                 "中": "Medium",
-
-                // Conjunctions & Modifiers
                 "大於": " > ",
                 "小於": " < ",
                 "等於": " = ",
@@ -1034,8 +1012,6 @@ createApp({
                 "及": " and ",
                 "與": " and ",
                 "和": " and ",
-
-                // Punctuations
                 "：": ": ",
                 "，": ", ",
                 "、": ", ",
@@ -1043,10 +1019,8 @@ createApp({
                 "）": ")"
             };
 
-            // 1. 完全比對 (主要針對表頭)
             if (dict[tStr]) return dict[tStr];
             
-            // 2. 局部比對替換 (針對混合字串)
             const keys = Object.keys(dict).sort((a, b) => b.length - a.length);
             for (const k of keys) {
                 if (tStr.includes(k)) {
@@ -1054,7 +1028,6 @@ createApp({
                 }
             }
 
-            // 整理因為合併可能產生的多餘空白
             tStr = tStr.replace(/\s+/g, ' ').trim();
             return tStr;
         };
@@ -1074,7 +1047,6 @@ createApp({
             
             const exportRows = uniqueRecords.map(r => {
                 let tStr = r.type === 'inst' ? t('typeInst') : r.type === 'reag' ? t('typeReag') : r.type === 'cal' ? t('typeCal') : r.type === 'ctrl' ? t('typeCtrl') : t('typeOther');
-                // 針對第一頁的 Name 欄位也進行翻譯替換
                 return { typeStr: tStr, name: translateContent(r.name, lang.value), code: r.code };
             });
             ws1.addRows(exportRows);
@@ -1146,14 +1118,7 @@ createApp({
             saveAs(new Blob([buffer]), "General_Summary.xlsx");
         };
 
-        const colStrToNum = (str) => {
-            let num = 0;
-            for (let i = 0; i < str.length; i++) {
-                num = num * 26 + (str.charCodeAt(i) - 64);
-            }
-            return num;
-        };
-
+        // 🌟 全新極簡安全版 FOC 引擎
         const exportFOC = async () => {
             const { uniqueRecords } = generateExportData();
             if (uniqueRecords.length === 0) {
@@ -1162,7 +1127,8 @@ createApp({
             }
 
             try {
-                const templateName = 'RDTW_0013_A01_FOC Application Form FOC 申請單.xlsx';
+                // 1. 下載最新範本
+                const templateName = 'RDTW_0013_A01_FOC Application Form FOC 申請單_2.xlsx';
                 const response = await fetch('./' + templateName + '?t=' + new Date().getTime());
                 if (!response.ok) throw new Error("File not found / 找不到檔案。");
                 
@@ -1172,149 +1138,61 @@ createApp({
 
                 let ws = wb.getWorksheet('工作表1') || wb.worksheets[0];
 
-                let itemCodeRowIdx = -1;
-                let itemCodeColIdx = 1;
+                let headerRowIdx = -1;
+                let codeColIdx = 1;
                 let descColIdx = 2;
-                let footerRowIdx = -1;
 
+                // 2. 尋找標題列 (Material Code)
                 ws.eachRow((row, rowNum) => {
-                    let rowText = "";
+                    if (headerRowIdx !== -1) return;
                     row.eachCell((cell, colNum) => {
-                        const cellText = getCellText(cell).toLowerCase().replace(/\s+/g, '');
-                        rowText += cellText;
-                        if (itemCodeRowIdx === -1) {
-                            if (cellText.includes('materialcode') || cellText.includes('itemcode') || cellText.includes('material') || cellText.includes('貨號')) {
-                                itemCodeRowIdx = rowNum;
-                                itemCodeColIdx = colNum;
-                            }
-                            if (cellText.includes('description') || cellText.includes('品名') || cellText.includes('產品名稱') || cellText.includes('product')) {
-                                descColIdx = colNum;
-                            }
+                        const text = getCellText(cell).toLowerCase().replace(/\s+/g, '');
+                        if (text.includes('materialcode') || text.includes('itemcode') || text.includes('貨號')) {
+                            headerRowIdx = rowNum;
+                            codeColIdx = colNum;
+                        }
+                        if (text.includes('description') || text.includes('品名') || text.includes('產品名稱')) {
+                            descColIdx = colNum;
                         }
                     });
-
-                    if (itemCodeRowIdx !== -1 && rowNum > itemCodeRowIdx && footerRowIdx === -1) {
-                        if (rowText.includes('申請人') || rowText.includes('applicant') || rowText.includes('填寫說明')) {
-                            footerRowIdx = rowNum;
-                        }
-                    }
                 });
 
-                if (itemCodeRowIdx === -1) throw new Error(t('errNoHeader'));
-                if (footerRowIdx === -1) throw new Error(t('errNoFooter'));
+                if (headerRowIdx === -1) throw new Error(t('errNoHeader'));
 
-                const startRow = itemCodeRowIdx + 1;
-                const preAllocatedRows = footerRowIdx - startRow;
+                const startRow = headerRowIdx + 1; // 從標題的下一行開始填
                 const requiredRows = uniqueRecords.length;
+                const defaultRows = 5; // 範本預設提供的空白行數
 
-                if (requiredRows > preAllocatedRows) {
-                    alert(tReplace('alertSpace', requiredRows, preAllocatedRows));
-                    return;
+                // 3. 如果超過 5 項，直接在第 6 項的位置 (startRow + 5) 插入空白列
+                if (requiredRows > defaultRows) {
+                    const rowsToAdd = requiredRows - defaultRows;
+                    const insertPos = startRow + defaultRows;
+
+                    // 插入空列 (這會自動把底下的簽名區連同合併格式往下推)
+                    const emptyData = Array(rowsToAdd).fill([]);
+                    ws.spliceRows(insertPos, 0, ...emptyData);
+
+                    // 複製最後一行預設列的格式 (startRow + 4)
+                    const templateRow = ws.getRow(insertPos - 1);
+                    for (let i = 0; i < rowsToAdd; i++) {
+                        const newRow = ws.getRow(insertPos + i);
+                        newRow.height = templateRow.height;
+                        templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                            newRow.getCell(colNumber).style = cell.style;
+                        });
+                    }
                 }
 
+                // 4. 填寫資料
                 uniqueRecords.forEach((item, index) => {
                     const targetRow = ws.getRow(startRow + index);
-                    targetRow.getCell(itemCodeColIdx).value = item.code;
+                    targetRow.getCell(codeColIdx).value = item.code;
                     targetRow.getCell(descColIdx).value = item.name;
                 });
 
-                const shiftUpCount = preAllocatedRows - requiredRows;
-
-                if (shiftUpCount > 0) {
-                    let originalMerges = [];
-                    if (ws._merges) {
-                        for (const key in ws._merges) { originalMerges.push(key); }
-                    }
-                    originalMerges.forEach(ref => {
-                        try { ws.unmergeCells(ref); } catch(e) {}
-                    });
-
-                    const lastRow = ws.rowCount;
-                    for (let r = footerRowIdx; r <= lastRow; r++) {
-                        const newR = r - shiftUpCount;
-                        const srcRow = ws.getRow(r);
-                        const dstRow = ws.getRow(newR);
-                        
-                        dstRow.height = srcRow.height;
-                        
-                        for (let c = 1; c <= 20; c++) {
-                            const srcCell = srcRow.getCell(c);
-                            const dstCell = dstRow.getCell(c);
-                            
-                            dstCell.value = srcCell.value;
-                            if (srcCell.style && Object.keys(srcCell.style).length > 0) {
-                                dstCell.style = JSON.parse(JSON.stringify(srcCell.style));
-                            } else {
-                                dstCell.style = {};
-                            }
-                        }
-                    }
-
-                    for (let r = lastRow - shiftUpCount + 1; r <= lastRow; r++) {
-                        const row = ws.getRow(r);
-                        row.height = undefined;
-                        for (let c = 1; c <= 20; c++) {
-                            const cell = row.getCell(c);
-                            cell.value = null;
-                            cell.style = {};
-                        }
-                    }
-
-                    let newMergesToApply = [];
-                    originalMerges.forEach(ref => {
-                        const match = ref.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
-                        if (match) {
-                            let [, startColStr, startR, endColStr, endR] = match;
-                            startR = parseInt(startR);
-                            endR = parseInt(endR);
-                            
-                            if (startR >= footerRowIdx) {
-                                startR -= shiftUpCount;
-                                endR -= shiftUpCount;
-                                newMergesToApply.push(`${startColStr}${startR}:${endColStr}${endR}`);
-                            } else if (startR < footerRowIdx && endR >= footerRowIdx) {
-                                endR -= shiftUpCount;
-                                newMergesToApply.push(`${startColStr}${startR}:${endColStr}${endR}`);
-                            } else if (startR >= startRow + requiredRows && endR < footerRowIdx) {
-                                // 落於被刪除的空白列範圍內，丟棄
-                            } else {
-                                newMergesToApply.push(ref);
-                            }
-                        } else {
-                            const singleMatch = ref.match(/([A-Z]+)(\d+)/);
-                            if (singleMatch) {
-                                let [, colStr, r] = singleMatch;
-                                r = parseInt(r);
-                                if (r >= footerRowIdx) r -= shiftUpCount;
-                                // 單格不需合併
-                            }
-                        }
-                    });
-
-                    // 強制清空，只保留左上角第一格內容，然後執行合併
-                    newMergesToApply.forEach(ref => {
-                        const match = ref.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
-                        if (match) {
-                            let [, startColStr, startR, endColStr, endR] = match;
-                            startR = parseInt(startR);
-                            endR = parseInt(endR);
-                            const startColNum = colStrToNum(startColStr);
-                            const endColNum = colStrToNum(endColStr);
-                            
-                            for (let r = startR; r <= endR; r++) {
-                                for (let c = startColNum; c <= endColNum; c++) {
-                                    if (r !== startR || c !== startColNum) {
-                                        ws.getCell(r, c).value = null; 
-                                    }
-                                }
-                            }
-                        }
-                        try { ws.mergeCells(ref); } catch(e){}
-                    });
-                }
-
+                // 5. 輸出檔案
                 const buffer = await wb.xlsx.writeBuffer();
-                saveAs(new Blob([buffer]), "FOC_Application_Form.xlsx");
+                saveAs(new Blob([buffer]), "FOC_Application.xlsx");
 
             } catch (error) {
                 alert(t('alertFail') + error.message);
